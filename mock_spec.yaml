@@ -148,6 +148,12 @@ components:
         name:
           type: string
           example: "Kratos"
+        alignment:
+          type: string
+          example: "Spartan"
+        realm:
+          type: string
+          example: "Midgard"
         catchphrase:
           type: string
           example: "Death can have me when it earns me."
