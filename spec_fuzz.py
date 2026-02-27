@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from parser import load_spec_file
+from parser import parser_main
 
 
 def main():
@@ -35,8 +35,9 @@ def main():
     print(f"Loading specification from: {args.spec_file}")
     print("Initializing the parser...")
 
-    print(load_spec_file(args.spec_file))
+    parser_main(args.spec_file)
 
 
 if __name__ == "__main__":
     main()
+    

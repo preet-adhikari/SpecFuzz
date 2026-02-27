@@ -1,0 +1,35 @@
+{
+   "components": {
+      "schemas": {
+         "NotFound": {
+            "type": "object",
+            "description": "Standard 404 Error Response",
+            "properties": {
+               "error_code": {
+                  "type": "integer",
+                  "example": 404
+               },
+               "message": {
+                  "type": "string",
+                  "example": "The requested resource could not be found in the Nine Realms."
+               }
+            },
+            "required": ["error_code", "message"]
+         },
+         "Unauthorized": {
+            "type": "object",
+            "description": "Standard 401 Error Response",
+            "properties": {
+               "error_code": {
+                  "type": "integer",
+                  "example": 401
+               },
+               "message": {
+                  "type": "string",
+                  "example": "You lack the permissions of the Aesir."
+               }
+            }
+         }
+      }
+   }
+}
