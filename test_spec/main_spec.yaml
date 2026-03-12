@@ -1,0 +1,30 @@
+openapi: 3.0.0
+info:
+  title: God of War Ragnarok API - Characters
+  version: 1.0.0
+paths:
+  /characters:
+    post:
+      summary: Create a new character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Character"
+      responses:
+        '201':
+          description: Created successfully
+components:
+  schemas:
+    Character:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Kratos"
+        primary_weapon:
+          # THIS POINTS OUTWARD TO FILE #2
+          $ref: "weapon_spec.yaml#/components/schemas/Weapon"
