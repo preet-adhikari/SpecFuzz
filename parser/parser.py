@@ -2,11 +2,11 @@ import os
 import json
 import re
 import sys
-from resolve_ref_openapi_spec import find_and_resolve_refs
+from parser.resolve_ref_openapi_spec import find_and_resolve_refs
 from load_spec_file import load_spec_file
+from .parse_openapi_endpoints import parse_openapi_endpoints
 
-
-def check_and_validate_specification_version(spec_data: dict):
+def check_and_validate_specification_version(spec_data: dict) -> bool:
     """
     A function that checks and validates the specification data
     """
@@ -43,7 +43,7 @@ def check_and_validate_specification_version(spec_data: dict):
         sys.exit(1)
 
 
-def normalize_schema(processed_spec: dict):
+def normalize_schema(processed_spec: dict) -> dict:
 
     if not isinstance(processed_spec, (dict, list)):
         return processed_spec
@@ -77,10 +77,11 @@ def normalize_schema(processed_spec: dict):
             processed_spec["required"] = sorted(list(target_normalized_required))
             processed_spec["type"] = "object"
             del processed_spec["allOf"]
-    return processed_spec                   
+    return processed_spec
+       
 
 
-def process_spec_file(file_path: str):
+def process_spec_file(file_path: str) -> dict:
     spec_data = load_spec_file(file_path)
     if check_and_validate_specification_version(spec_data):
         find_and_resolve_refs(spec_data, spec_data, file_path)
@@ -90,5 +91,7 @@ def process_spec_file(file_path: str):
 def parser_main(file_path: str):
     processed_spec = process_spec_file(file_path)
     processed_spec = normalize_schema(processed_spec)
-    print(json.dumps(processed_spec, indent=4))
+    parsed_endpoints_dict = parse_openapi_endpoints(processed_spec)
+    # print(parsed_endpoints_dict)
+    # print(json.dumps(parsed_endpoints_dict, indent=4))
     # print(json.dumps(process_spec_file(file_path), indent=4))

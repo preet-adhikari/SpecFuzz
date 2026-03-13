@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from parser import parser_main
+from parser.parser import parser_main
 
 
 def main():

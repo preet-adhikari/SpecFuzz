@@ -2,6 +2,9 @@ openapi: 3.0.0
 info:
   title: Override Bug Test API
   version: 1.0.0
+servers:
+  - url: "https://development.override-bug-test/api"
+    description: "API Server"
 paths:
   /admins:
     post:
