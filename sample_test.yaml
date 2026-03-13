@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  title: Override Bug Test API
+  version: 1.0.0
+servers:
+  - url: "https://development.override-bug-test/api"
+    description: "API Server"
+paths:
+  /admins:
+    post:
+      summary: Create a new admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminProfile'
+      responses:
+        '201':
+          description: Admin created
+
+components:
+  schemas:
+    BaseUser:
+      type: object
+      required:
+        - username
+      properties:
+        username:
+          type: string
+          example: "jdoe"
+        status:
+          type: string
+          description: "PARENT DEFINITION: This should be overwritten!"
+          example: "active"
+
+    AdminProfile:
+      allOf:
+        - $ref: '#/components/schemas/BaseUser'
+      required:
+        - clearance_level
+      properties:
+        clearance_level:
+          type: integer
+          minimum: 1
+          maximum: 5
+        status:
+          type: boolean
+          description: "CHILD DEFINITION: This is the boss. This should win!"
+          example: true

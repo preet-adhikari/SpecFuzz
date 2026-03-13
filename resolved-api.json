@@ -1,0 +1,875 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "God of War Ragnarok Character API",
+    "version": "1.0.0",
+    "description": "A mock API for managing character profiles across the Nine Realms."
+  },
+  "paths": {
+    "/characters": {
+      "get": {
+        "summary": "List characters",
+        "description": "Retrieve a list of characters.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "realm",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return the list of characters from a particular realm/world.",
+            "example": "Midgard"
+          },
+          {
+            "in": "query",
+            "name": "alignment",
+            "schema": {
+              "type": "string",
+              "nullable": true,
+              "enum": [
+                "Aesir",
+                "Vanir",
+                "Jötnar",
+                "Elves",
+                "Dwarves",
+                "Midgardians",
+                "Spartan"
+              ]
+            },
+            "description": "Return the list of characters from a particular alignment."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful list of characters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "example": "Kratos"
+                          },
+                          "alignment": {
+                            "type": "string",
+                            "example": "Spartan"
+                          },
+                          "realm": {
+                            "type": "string",
+                            "example": "Midgard"
+                          },
+                          "catchphrase": {
+                            "type": "string",
+                            "example": "Death can have me when it earns me."
+                          },
+                          "weapons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": [
+                              "Leviathan Axe",
+                              "Blades of Chaos"
+                            ]
+                          },
+                          "strengths": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 10,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "attribute",
+                                "level"
+                              ],
+                              "properties": {
+                                "attribute": {
+                                  "type": "string"
+                                },
+                                "level": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 10
+                                }
+                              }
+                            }
+                          },
+                          "weaknesses": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 100
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "required": [
+                      "name",
+                      "weapons",
+                      "strengths",
+                      "weaknesses"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, query parameters are malformed or invalid."
+          },
+          "422": {
+            "description": "Unprocessable Entity. Query parameters failed validation constraints."
+          },
+          "500": {
+            "description": "Internal Server error. The Nine Realms have collapsed."
+          },
+          "503": {
+            "description": "Service temporarily unavailable due to overload or maintenance."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new character",
+        "description": "Add a new character profile to the database.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "example": "Kratos"
+                      },
+                      "alignment": {
+                        "type": "string",
+                        "example": "Spartan"
+                      },
+                      "realm": {
+                        "type": "string",
+                        "example": "Midgard"
+                      },
+                      "catchphrase": {
+                        "type": "string",
+                        "example": "Death can have me when it earns me."
+                      },
+                      "weapons": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": [
+                          "Leviathan Axe",
+                          "Blades of Chaos"
+                        ]
+                      },
+                      "strengths": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "attribute",
+                            "level"
+                          ],
+                          "properties": {
+                            "attribute": {
+                              "type": "string"
+                            },
+                            "level": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10
+                            }
+                          }
+                        }
+                      },
+                      "weaknesses": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 100
+                        }
+                      }
+                    }
+                  }
+                ],
+                "required": [
+                  "name",
+                  "weapons",
+                  "strengths",
+                  "weaknesses"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Character successfully created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "Kratos"
+                        },
+                        "alignment": {
+                          "type": "string",
+                          "example": "Spartan"
+                        },
+                        "realm": {
+                          "type": "string",
+                          "example": "Midgard"
+                        },
+                        "catchphrase": {
+                          "type": "string",
+                          "example": "Death can have me when it earns me."
+                        },
+                        "weapons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "Leviathan Axe",
+                            "Blades of Chaos"
+                          ]
+                        },
+                        "strengths": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 10,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "attribute",
+                              "level"
+                            ],
+                            "properties": {
+                              "attribute": {
+                                "type": "string"
+                              },
+                              "level": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 10
+                              }
+                            }
+                          }
+                        },
+                        "weaknesses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 100
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "required": [
+                    "name",
+                    "weapons",
+                    "strengths",
+                    "weaknesses"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Request payload is malformed or missing required structure."
+          },
+          "409": {
+            "description": "A character with the same identifier already exists."
+          },
+          "422": {
+            "description": "Unprocessable Entity. Payload violates schema constraints such as length or enum restrictions."
+          },
+          "500": {
+            "description": "Internal Server error. The Nine Realms have collapsed."
+          },
+          "503": {
+            "description": "Service temporarily unavailable due to overload or maintenance."
+          },
+          "default": {
+            "description": "Unexpected error"
+          }
+        }
+      }
+    },
+    "/characters/{characterName}": {
+      "get": {
+        "summary": "Get a specific character profile by name",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "required": true,
+            "description": "The name of the character (e.g., Kratos, Freya, Thor)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The character profile was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "Kratos"
+                        },
+                        "alignment": {
+                          "type": "string",
+                          "example": "Spartan"
+                        },
+                        "realm": {
+                          "type": "string",
+                          "example": "Midgard"
+                        },
+                        "catchphrase": {
+                          "type": "string",
+                          "example": "Death can have me when it earns me."
+                        },
+                        "weapons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "Leviathan Axe",
+                            "Blades of Chaos"
+                          ]
+                        },
+                        "strengths": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 10,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "attribute",
+                              "level"
+                            ],
+                            "properties": {
+                              "attribute": {
+                                "type": "string"
+                              },
+                              "level": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 10
+                              }
+                            }
+                          }
+                        },
+                        "weaknesses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 100
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "required": [
+                    "name",
+                    "weapons",
+                    "strengths",
+                    "weaknesses"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No character exists with the provided identifier."
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a character",
+        "description": "Partially update a character (e.g., adding the Draupnir Spear later in the game).",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "required": true,
+            "description": "The name of the character (e.g., Kratos, Freya, Thor)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "catchphrase": {
+                    "type": "string"
+                  },
+                  "weapons": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "strengths": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "attribute",
+                        "level"
+                      ],
+                      "properties": {
+                        "attribute": {
+                          "type": "string"
+                        },
+                        "level": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        }
+                      }
+                    }
+                  },
+                  "weaknesses": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 100
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Character updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "Kratos"
+                        },
+                        "alignment": {
+                          "type": "string",
+                          "example": "Spartan"
+                        },
+                        "realm": {
+                          "type": "string",
+                          "example": "Midgard"
+                        },
+                        "catchphrase": {
+                          "type": "string",
+                          "example": "Death can have me when it earns me."
+                        },
+                        "weapons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "Leviathan Axe",
+                            "Blades of Chaos"
+                          ]
+                        },
+                        "strengths": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 10,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "attribute",
+                              "level"
+                            ],
+                            "properties": {
+                              "attribute": {
+                                "type": "string"
+                              },
+                              "level": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 10
+                              }
+                            }
+                          }
+                        },
+                        "weaknesses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 100
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "required": [
+                    "name",
+                    "weapons",
+                    "strengths",
+                    "weaknesses"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Patch update violates schema or constraint rules."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a character",
+        "description": "Delete a character via their name.",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "path",
+            "required": true,
+            "description": "The name of the character (e.g., Kratos, Freya, Thor)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully deleted (No Content returned)."
+          },
+          "403": {
+            "description": "Forbidden. The request is not authorized to delete this response."
+          },
+          "404": {
+            "description": "Character not found."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CharacterBase": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Kratos"
+          },
+          "alignment": {
+            "type": "string",
+            "example": "Spartan"
+          },
+          "realm": {
+            "type": "string",
+            "example": "Midgard"
+          },
+          "catchphrase": {
+            "type": "string",
+            "example": "Death can have me when it earns me."
+          },
+          "weapons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Leviathan Axe",
+              "Blades of Chaos"
+            ]
+          },
+          "strengths": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "required": [
+                "attribute",
+                "level"
+              ],
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                }
+              }
+            }
+          },
+          "weaknesses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        }
+      },
+      "CharacterProfile": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Kratos"
+              },
+              "alignment": {
+                "type": "string",
+                "example": "Spartan"
+              },
+              "realm": {
+                "type": "string",
+                "example": "Midgard"
+              },
+              "catchphrase": {
+                "type": "string",
+                "example": "Death can have me when it earns me."
+              },
+              "weapons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": [
+                  "Leviathan Axe",
+                  "Blades of Chaos"
+                ]
+              },
+              "strengths": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "attribute",
+                    "level"
+                  ],
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10
+                    }
+                  }
+                }
+              },
+              "weaknesses": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              }
+            }
+          }
+        ],
+        "required": [
+          "name",
+          "weapons",
+          "strengths",
+          "weaknesses"
+        ]
+      },
+      "ArrayOfCharacters": {
+        "type": "array",
+        "items": {
+          "allOf": [
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Kratos"
+                },
+                "alignment": {
+                  "type": "string",
+                  "example": "Spartan"
+                },
+                "realm": {
+                  "type": "string",
+                  "example": "Midgard"
+                },
+                "catchphrase": {
+                  "type": "string",
+                  "example": "Death can have me when it earns me."
+                },
+                "weapons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "Leviathan Axe",
+                    "Blades of Chaos"
+                  ]
+                },
+                "strengths": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 10,
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "attribute",
+                      "level"
+                    ],
+                    "properties": {
+                      "attribute": {
+                        "type": "string"
+                      },
+                      "level": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10
+                      }
+                    }
+                  }
+                },
+                "weaknesses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 100
+                  }
+                }
+              }
+            }
+          ],
+          "required": [
+            "name",
+            "weapons",
+            "strengths",
+            "weaknesses"
+          ]
+        }
+      },
+      "CharacterPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "catchphrase": {
+            "type": "string"
+          },
+          "weapons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "strengths": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "required": [
+                "attribute",
+                "level"
+              ],
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                }
+              }
+            }
+          },
+          "weaknesses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        }
+      },
+      "strengths": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 10,
+        "items": {
+          "type": "object",
+          "required": [
+            "attribute",
+            "level"
+          ],
+          "properties": {
+            "attribute": {
+              "type": "string"
+            },
+            "level": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            }
+          }
+        }
+      },
+      "weaknesses": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "maxLength": 100
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+openapi: 3.1.0
+info: 
+  title: Recursive Telemetry API
+  version: 2.0.0
+paths:
+  /telemetry/log:
+    post:
+      summary: Send a complex, nested log attribute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnyValue"
+      responses:
+        '200':
+          description: Successfully logged
+
+  /telemetry/config:
+    get:
+      summary: Retrieve an array of configuration values
+      responses:
+        '200':
+          description: A list of arbitrary values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArrayValue"
+
+components:
+  schemas:
+    AnyValue:
+      description: "AnyValue is used to represent any type of attribute value."
+      type: object
+      properties:
+        stringValue:
+          type: string
+        boolValue:
+          type: boolean
+        intValue:
+          type: string
+          format: int64
+        doubleValue:
+          type: number
+          format: double
+        arrayValue:
+          $ref: "#/components/schemas/ArrayValue"
+        bytesValue:
+          type: string
+          format: byte
+
+    ArrayValue:
+      description: "ArrayValue is a list of AnyValue messages."
+      type: object
+      required:
+        - values
+      properties:
+        values:
+          description: "Array of values. The array may be empty (contain 0 elements)."
+          type: array
+          items:
+            $ref: "#/components/schemas/AnyValue"

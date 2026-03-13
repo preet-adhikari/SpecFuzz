@@ -1,0 +1,21 @@
+openapi: 3.0.0
+info:
+  title: God of War Ragnarok API - Weapons
+  version: 1.0.0
+paths: {} 
+components:
+  schemas:
+    Weapon:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Leviathan Axe"
+        damage:
+          type: integer
+          example: 100
+        current_owner:
+          # THIS POINTS RIGHT BACK TO FILE #1
+          $ref: "main_spec.yaml#/components/schemas/Character"

@@ -1,0 +1,56 @@
+openapi: 3.0.0
+info:
+  title: Nine Realms API - Reference Tester
+  version: 1.0.0
+paths:
+  /characters/kratos:
+    get:
+      summary: Get Kratos Profile
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                # TYPE 1: Internal Reference (Starts with #)
+                # Look inside this exact file.
+                $ref: '#/components/schemas/CharacterProfile'
+                
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                # TYPE 2: Whole External File (No # at all)
+                # Import this entire JSON file.
+                $ref: 'errors.json#/components/schemas/NotFound'
+                
+        # '404':
+        #   description: Character Not Found
+        #   content:
+        #     application/json:
+        #       schema:
+        #         # TYPE 3: Relative External + Fragment (File path and #)
+        #         # Go to this other file, then look inside its components.
+        #         $ref: './shared/responses.yaml#/components/schemas/NotFound'
+                
+        # '500':
+        #   description: Internal Server Error
+        #   content:
+        #     application/json:
+        #       schema:
+        #         # TYPE 4: Absolute URL
+        #         # Fetch the schema from an external website.
+        #         $ref: 'https://api.naughty-dog.com/schemas/errors.json#/ServerError'
+
+components:
+  schemas:
+    CharacterProfile:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Kratos
+        realm:
+          type: string
+          example: Midgard
