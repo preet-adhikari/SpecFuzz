@@ -2,8 +2,7 @@ import argparse
 import os
 import sys
 
-from parser.parser import parser_main
-
+from spec_factory import SpecFactory
 
 def main():
     """
@@ -35,9 +34,19 @@ def main():
     print(f"Loading specification from: {args.spec_file}")
     print("Initializing the parser...")
 
-    parser_main(args.spec_file)
+    # parser_main(args.spec_file)
+    try:
+        parser = SpecFactory.peek_parser_type(args.spec_file)
+        parsed_data = parser.parse(args.spec_file)
 
+
+    except ValueError as e:
+        print(f"⛔️{e}")
+        sys.exit(1)
+
+    except Exception as e:
+        print(f"An unexpected fatal error occurred: {e}")
+        sys.exit(1)        
 
 if __name__ == "__main__":
     main()
-    
