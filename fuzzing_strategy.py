@@ -37,20 +37,35 @@ class HappyPathStrategy(FuzzingStrategy):
         # 3. RECURSION: Handling Arrays
         elif schema_type == "array":
             items_schema = schema.get("items", {})
+            # Do this only when minItems and maxItems aren't set
             # Generate a list with 1 to 3 valid items by calling itself
             return [
-                self.generate_payload(items_schema) for _ in range(random.randint(1, 3))
+                self.generate_payload(items_schema) for _ in range(self._calculate_min_max_bounds(schema.get("maxItems"), schema.get("minItems")))
             ]
 
         # 4. Base Cases: Generating Primitives
         elif schema_type == "string":
             return "valid_" + "".join(random.choices(string.ascii_letters, k=6))
         elif schema_type in ["integer", "number"]:
-            return random.randint(1, 100)
+            # Check for maximum and minimum if they exist for numbers and integers
+            return self._calculate_min_max_bounds(schema.get("maximum"), schema.get("minimum"))
         elif schema_type == "boolean":
             return random.choice([True, False])
 
         return None
+    
+    @staticmethod
+    # This method automatically returns the right bounds for minimum and maximum setting of numbers
+    def _calculate_min_max_bounds(max, min) -> tuple[int, int]:
+        if max is not None and min is not None:
+            return random.randint(min, max)
+        elif max is not None:
+            return random.randint(max - 5, max) # Using 5 as an arbitrary number
+        elif min is not None:
+            return random.randint(min, min + 5)
+        else: 
+            return random.randint(1, 5)
+
 
 
 class MissingRequiredFieldsStrategy(FuzzingStrategy):

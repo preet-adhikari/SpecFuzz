@@ -32,5 +32,6 @@ def parse_openapi_endpoints(processed_spec: dict):
 
                 parsed_endpoint_data.operations.append(operation)
 
-    print(json.dumps(asdict(parsed_endpoint_data), indent=4))
+    # print(json.dumps(asdict(parsed_endpoint_data), indent=4))
+    # print(parsed_endpoint_data)
     return parsed_endpoint_data
