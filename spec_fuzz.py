@@ -43,13 +43,14 @@ def main():
         # print(parsed_data)
         # Testing if FuzzingStrategy works
         # happy_path = HappyPathStrategy()
-        missing_fields = MissingRequiredFieldsStrategy()
-        # type_mismatch = TypeMismatchStrategy()
+        # missing_fields = MissingRequiredFieldsStrategy()
+        type_mismatch = TypeMismatchStrategy()
         # print(json.dumps(asdict(parsed_data), indent=4))
         # print(type(parsed_data.operations))
         # print(parsed_data.operations.index("request_body"))
         schema = parsed_data.operations[0].request_body.get("content").get("application/json").get("schema")
-        print(missing_fields.generate_payload(schema))
+        result = type_mismatch.generate_payload(schema)
+        print(result)
 
     except ValueError as e:
         print(f"⛔️{e}")

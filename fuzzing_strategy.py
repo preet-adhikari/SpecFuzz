@@ -99,16 +99,16 @@ class TypeMismatchStrategy(FuzzingStrategy):
         self.base_generator = HappyPathStrategy()
 
     def generate_payload(self, schema: Dict[str, Any]) -> Any:
-        # 1. Build a perfectly valid payload first
+        # Build a perfectly valid payload first
         valid_payload = self.base_generator.generate_payload(schema)
 
         if schema.get("type") != "object" or not valid_payload:
             return valid_payload
 
-        # 2. The Sabotage: Pick a random property that we just generated
+        # The Sabotage: Pick a random property that we just generated
         key_to_corrupt = random.choice(list(valid_payload.keys()))
 
-        # 3. Replace the valid data with a wildly incorrect data type (an arbitrary dict)
+        # Replace the valid data with a wildly incorrect data type (an arbitrary dict)
         valid_payload[key_to_corrupt] = {
             "corrupted_type": "I should not be a dictionary"
         }
