@@ -1,7 +1,8 @@
 import yaml
 import json
+from typing import Any
 
-def load_spec_file(file_path: str):
+def load_spec_file(file_path: str) -> dict[str, Any]:
     """
     A loader that handles both YAML and JSON.
     """

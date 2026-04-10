@@ -1,9 +1,10 @@
 import argparse
 import os
 import sys
-
-from parser.parser import parser_main
-
+import json
+from spec_factory import SpecFactory
+from fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
+from dataclasses import asdict
 
 def main():
     """
@@ -35,9 +36,29 @@ def main():
     print(f"Loading specification from: {args.spec_file}")
     print("Initializing the parser...")
 
-    parser_main(args.spec_file)
+    # parser_main(args.spec_file)
+    try:
+        parser = SpecFactory.peek_parser_type(args.spec_file)
+        parsed_data = parser.parse(args.spec_file)
+        # print(parsed_data)
+        # Testing if FuzzingStrategy works
+        # happy_path = HappyPathStrategy()
+        # missing_fields = MissingRequiredFieldsStrategy()
+        type_mismatch = TypeMismatchStrategy()
+        # print(json.dumps(asdict(parsed_data), indent=4))
+        # print(type(parsed_data.operations))
+        # print(parsed_data.operations.index("request_body"))
+        schema = parsed_data.operations[0].request_body.get("content").get("application/json").get("schema")
+        result = type_mismatch.generate_payload(schema)
+        print(result)
 
+    except ValueError as e:
+        print(f"⛔️{e}")
+        sys.exit(1)
+
+    except Exception as e:
+        print(f"An unexpected fatal error occurred: {e}")
+        sys.exit(1)        
 
 if __name__ == "__main__":
     main()
-    
