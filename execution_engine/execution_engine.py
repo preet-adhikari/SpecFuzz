@@ -28,7 +28,7 @@ class ExecutionEngine:
                     is_success = response.ok,
                     response_time = elapsed_time_ms,
                     response_header = dict(response.headers),
-                    response_body = response.text 
+                    response_body = response.content
                 )
 
         except Timeout as e:
@@ -40,18 +40,18 @@ class ExecutionEngine:
                 error_message=f"Timeout: {str(e)}",
             )
 
-        except TooManyRedirects:
+        except TooManyRedirects as e:
             end_time = time.perf_counter_ns()
-            elapsed_ms = (end - start) / 1_000_000
+            elapsed_ms = (end_time - start) / 1_000_000
             return ExecutionResult(
                 is_success=False,
                 response_time = elapsed_ms,
                 error_message=f"Too Many Redirects: {str(e)}",
             )
 
-        except RequestException:
+        except RequestException as e:
             end_time = time.perf_counter_ns()
-            elapsed_ms = (end - start) / 1_000_000
+            elapsed_ms = (end_time - start) / 1_000_000
             return ExecutionResult(
                 is_success=False,
                 response_time =elapsed_ms,

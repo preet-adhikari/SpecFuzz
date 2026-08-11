@@ -33,3 +33,5 @@ def normalize_schema(processed_spec: dict) -> dict:
             processed_spec["type"] = "object"
             del processed_spec["allOf"]
     return processed_spec
+
+#TODO move the parse_openapi_endpoints here

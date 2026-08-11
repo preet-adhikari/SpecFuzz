@@ -14,10 +14,34 @@ from execution_engine_request_data import ExecutionEngineRequestData
 # )
 
 # # 1. Triggering a Timeout
+# test_data = ExecutionEngineRequestData(
+#     method="GET",
+#     url="https://httpbin.org/delay/10",  # Tells the server to wait 10 seconds
+#     headers={"X-Test-Header": "Testing-Timeout"},
+#     payload=None,
+# )
+
+# 2. Triggering Redirect error
+
+# test_data = ExecutionEngineRequestData(
+#     method="GET",
+#     url="https://httpbin.org/redirect/300", # Redirects 300 times
+#     # url="https://httpbiiiiiin.org",
+#     headers={"X-Test-Header": "Testing redirect"},
+#     payload=None,
+# )
+
+# Testing if the API key security for basic authentication works
 test_data = ExecutionEngineRequestData(
     method="GET",
-    url="https://httpbin.org/delay/10",  # Tells the server to wait 10 seconds
-    headers={"X-Test-Header": "Testing-Timeout"},
+    url="https://httpbin.org/basic-auth/kratos/atreus",
+    headers={
+        "Accept": "application/json",
+        # Notice the word 'Basic' followed by a space and the scrambled string
+        "Authorization": "Basic a3JhdG9zOmF0cmV1cw==",
+        "X-Test-Header": "Fuzzing-Test",
+    },
+    # Note: GET requests typically do not have a payload/body
     payload=None,
 )
 

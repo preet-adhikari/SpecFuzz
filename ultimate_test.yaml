@@ -1,0 +1,69 @@
+openapi: 3.0.4
+info:
+  title: God of War API - Advanced Parser Challenge
+  version: 1.0.0
+
+# --- GLOBAL CONFIGURATION ---
+servers:
+  - url: https://api.midgard.com/v1
+    description: Primary Production Server
+
+security:
+  - SpartanApiKey: []
+
+# --- THE GATES (PATHS) ---
+paths:
+  /weapons/leviathan-axe:
+    get:
+      summary: Standard endpoint testing basic $ref resolution
+      # Inherits global servers and security
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Weapon'
+
+  /realms/yggdrasil/explore:
+    post:
+      summary: The Infinite Loop Challenge
+      # LOCAL OVERRIDES
+      servers:
+        - url: https://yggdrasil.midgard.com/v2
+      security: [] 
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YggdrasilNode'
+      responses:
+        '200':
+          description: Successfully traversed the tree
+
+# --- THE ARMORY (COMPONENTS) ---
+components:
+  securitySchemes:
+    SpartanApiKey:
+      type: apiKey
+      in: header
+      name: X-Spartan-Token
+
+  schemas:
+    Weapon:
+      type: object
+      properties:
+        name:
+          type: string
+        runic_attack:
+          type: string
+
+    # THE CIRCULAR REFERENCE
+    YggdrasilNode:
+      type: object
+      properties:
+        realm_name:
+          type: string
+        # This references itself, creating an infinite loop if parsed blindly
+        connected_branch:
+          $ref: '#/components/schemas/YggdrasilNode'
