@@ -24,6 +24,7 @@ servers:
     variables:
       environment:
         default: production
+    description: Single variable
 
   # 4. Multiple Variables
   - url: https://{environment}.travel.com:{port}/{basePath}
@@ -34,18 +35,21 @@ servers:
         default: v2
       environment:
         default: staging
+    description: Multiple variables
 
   # 5. Enum Fallback
   - url: https://api.travel.com/region/{region_code}
     variables:
       region_code:
         enum: [us-east, eu-west, ap-south]
+    description: Enum Fallback
 
   # 6. Unused Variables
   - url: https://secure.travel.com/v1
     variables:
       forgotten_var:
         default: "nobody_uses_me"
+    description: Unused variables
 
   # 6b. Used AND Unused Variables (URL has one, dict has two)
   - url: https://{environment}.travel.com/v2
@@ -54,6 +58,7 @@ servers:
         default: sandbox
       ghost_variable:
         default: "I am defined here but missing from the URL string"
+    description: Used AND Unused Variables (URL has one, dict has two)
   # ---------------------------------------------------------
   # GLOBAL SERVERS: THE "BROKEN PATHS"
   # ---------------------------------------------------------
@@ -63,6 +68,7 @@ servers:
     variables:
       module:
         description: No default and no enum provided.
+    description: Missing Default and Enum
 
   # 8. Unmapped Variable
   - url: https://{unknown_subdomain}.travel.com/v1
@@ -74,6 +80,7 @@ servers:
       environment:
         default: production
 
+security: []
 # ---------------------------------------------------------
 # THE PATHS (With Local Server Overrides)
 # ---------------------------------------------------------
@@ -86,14 +93,22 @@ paths:
       # 10. Local Valid Override (Dedicated booking microservice)
       - url: https://itineraries.travel.com/v1
         description: Dedicated absolute URL for itinerary operations
-
-      # 11. Local Relative Override (Valid relative path for local proxying)
-      - url: /local-proxy/itineraries
-        description: Valid relative path override
+        
+      # 10b. Local Enum Fallback
+      - url: https://{region}.itineraries.travel.com/v1
+        variables:
+          region:
+            enum: [eu-central, us-west]
+        description: Local server with enum fallback
 
       # 12. Local Broken URL (Malformed double-slash to test Path-Level isolation)
       - url: //broken-local.travel.com/v1
         description: Malformed local URL - should be dropped without breaking #10 and #11
+        
+      # 11. Local Relative Override (Valid relative path for local proxying)
+      - url: /local-proxy/itineraries
+        description: Valid relative path override
+
 
     get:
       summary: Get a list of all active itineraries
@@ -101,6 +116,15 @@ paths:
         '200':
           description: A JSON array of itinerary objects
     post:
+      servers:
+        # 6b. Used AND Unused Variables (URL has one, dict has two)
+      - url: https://{environment}.travel.com/v2
+        variables:
+          environment:
+            default: sandbox
+          ghost_variable:
+            default: "I am defined here but missing from the URL string"
+        description: Used AND Unused Variables (URL has one, dict has two)
       summary: Create a new itinerary
       responses:
         '201':
@@ -111,6 +135,12 @@ paths:
     # PATH WITH NO LOCAL SERVERS (Should Fallback to Global)
     # -------------------------------------------------------
     get:
+      servers:
+      # 13. Local Server with Variable Resolution
+      - url: https://{archive_cluster}.travel.com/vault
+        variables:
+          archive_cluster:
+            default: cold-storage-us
       summary: Retrieve a specific itinerary by its ID
       parameters:
         - name: id
@@ -134,6 +164,17 @@ paths:
         variables:
           archive_cluster:
             default: cold-storage-us
+            
+      # 14. Local Broken Variable (No default/enum)
+      - url: https://archive.{datacenter}.travel.com/vault
+        variables:
+          datacenter:
+            description: Missing default and enum - should fail cleanly.
+            
+      # 15. Local Unmapped Variable
+      - url: https://{secret_zone}.travel.com/vault
+        description: Expects a variable but has no dict.
+
     get:
       summary: Get archived itineraries
       responses:
