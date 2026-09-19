@@ -1,5 +1,5 @@
 import pytest
-from fuzzing_strategy import MissingRequiredFieldsStrategy
+from test_generator.fuzzing_strategy import MissingRequiredFieldsStrategy
 
 missing_strategy = MissingRequiredFieldsStrategy()
 

@@ -3,27 +3,6 @@ from typing import List, Dict, Any, Optional
 
 
 # We're creating a dataclass here so that if we have different kind of APIs to parse, we can make sure that it follows this standard.
-# @dataclass
-# class PathEndpointData:
-#     path: str
-#     method: str
-#     servers: List[Dict[str, Any]] = field(default_factory=list)
-#     security: List[Dict[str, Any]] = field(default_factory=list)
-#     request_body: Optional[Dict[str, Any]] = None
-#     response: Optional[Dict[str, Any]] = None
-
-# Global Class
-# @dataclass
-# class ParsedEndpointData:
-#     servers: List[Dict[str, Any]] = field(default_factory = list)
-#     security: List[Dict[str, Any]] = field(default_factory = list)
-#     operations: List[PathEndpointData] = field(default_factory = list)
-
-# Making some changes
-
-# from dataclasses import dataclass, field
-# from typing import List, Dict, Any, Optional
-
 
 # # 1. FLATTENED SERVER DATA
 @dataclass
@@ -68,8 +47,6 @@ class PathEndpointData:
 # # 4. THE FINAL PAYLOAD TO THE ORCHESTRATOR
 @dataclass
 class ParsedDataPackage:
-    # Notice: Global servers and global security are GONE!
-    # Everything is flattened into the operations.
-    # We only pass the global blueprints (The Armory) just in case the engine needs them.
+    # Security schemes is left empty and will be added in later versions to include token caching
     security_schemes: Dict[str, Any] = field(default_factory=dict)
     operations: List[PathEndpointData] = field(default_factory=list)

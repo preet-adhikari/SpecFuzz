@@ -1,7 +1,7 @@
 # Test for fuzzing strategy
 
 import pytest
-from fuzzing_strategy import HappyPathStrategy
+from test_generator.fuzzing_strategy import HappyPathStrategy
 
 happy_path_strategy = HappyPathStrategy()
 

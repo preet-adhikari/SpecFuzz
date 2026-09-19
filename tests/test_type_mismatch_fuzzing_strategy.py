@@ -1,5 +1,5 @@
 import pytest
-from fuzzing_strategy import TypeMismatchStrategy
+from test_generator.fuzzing_strategy import TypeMismatchStrategy
 
 
 type_mismatch_strategy = TypeMismatchStrategy()

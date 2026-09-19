@@ -5,7 +5,7 @@ import string
 
 class FuzzingStrategy(ABC):
     @abstractmethod
-    def generate_payload(self, parsed_endpoint_data: dict) -> dict:
+    def generate_payload(self, schema: dict, expected_response: dict) -> dict:
         """Every strategy must take the parsed spec and return a JSON payload"""
         pass
 
@@ -13,7 +13,7 @@ class FuzzingStrategy(ABC):
 class HappyPathStrategy(FuzzingStrategy):
     """Generates 100% valid data based on the schema rules."""
 
-    def generate_payload(self, schema: Dict[str, Any]) -> Any:
+    def generate_payload(self, schema: Dict[str, Any], expected_response: dict) -> Any:
         if not schema:
             return None
 
@@ -56,7 +56,7 @@ class HappyPathStrategy(FuzzingStrategy):
     
     @staticmethod
     # This method automatically returns the right bounds for minimum and maximum setting of numbers
-    def _calculate_min_max_bounds(max, min) -> tuple[int, int]:
+    def _calculate_min_max_bounds(max, min) -> int:
         if max is not None and min is not None:
             return random.randint(min, max)
         elif max is not None:
@@ -74,7 +74,7 @@ class MissingRequiredFieldsStrategy(FuzzingStrategy):
     def __init__(self):
         self.base_generator = HappyPathStrategy()
 
-    def generate_payload(self, schema: Dict[str, Any]) -> Any:
+    def generate_payload(self, schema: Dict[str, Any], expected_response: dict) -> Any:
         # Build a perfectly valid payload first
         valid_payload = self.base_generator.generate_payload(schema)
 
@@ -98,7 +98,7 @@ class TypeMismatchStrategy(FuzzingStrategy):
     def __init__(self):
         self.base_generator = HappyPathStrategy()
 
-    def generate_payload(self, schema: Dict[str, Any]) -> Any:
+    def generate_payload(self, schema: Dict[str, Any], expected_response) -> Any:
         # Build a perfectly valid payload first
         valid_payload = self.base_generator.generate_payload(schema)
 

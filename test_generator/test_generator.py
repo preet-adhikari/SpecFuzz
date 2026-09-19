@@ -1,8 +1,8 @@
-from fuzzing_strategy import FuzzingStrategy
+from test_generator.fuzzing_strategy import FuzzingStrategy
 
 
-class TestCaseGenerator:
-    def __init__(self, strategy: FuzzingStrategy):
+class TestGenerator:
+    def __init__(self, strategy: FuzzingStrategy): #Insert seed here as well
         self._strategy = strategy
         pass
 
@@ -11,3 +11,5 @@ class TestCaseGenerator:
 
     def create_test_case(self, parsed_endpoint_data: dict) -> dict:
         return self._strategy.generate_payload(parsed_endpoint_data)
+
+        

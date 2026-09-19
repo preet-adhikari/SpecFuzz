@@ -12,10 +12,10 @@ servers:
 
 security:
   - ApiKeyAuth: []  # Every endpoint requires the API key by default
-  - OAuth2:
+    OAuth2:
     - read
     - write
-  - BasicAuth: []
+
 # ==========================================
 # THE GATES (Paths / Operations)
 # ==========================================

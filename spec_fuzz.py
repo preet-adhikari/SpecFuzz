@@ -3,7 +3,7 @@ import os
 import sys
 import json
 from spec_factory import SpecFactory
-from fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
+from test_generator.fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
 from dataclasses import asdict
 
 def main():
