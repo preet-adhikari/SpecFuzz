@@ -31,6 +31,7 @@ def parse_openapi_endpoints(processed_spec: dict):
             global_servers = global_servers[0]
 
     # Parsing global security
+    global_security = []
     if "security" in processed_spec:
         global_security = handle_security(processed_spec)
         # print(json.dumps(global_security, indent=4))
@@ -58,6 +59,10 @@ def parse_openapi_endpoints(processed_spec: dict):
 
             for path_method, operation_details in path_items.items():
 
+                valid_methods = ["get", "post", "put", "patch", "delete"]
+                if path_method.lower() not in valid_methods:
+                    continue
+
                 override_global_security = False
                 # Checking for servers again at the path method level
                 operation_detail_path_servers = None
@@ -74,17 +79,14 @@ def parse_openapi_endpoints(processed_spec: dict):
                 )
                 
 
-                valid_methods = ["get", "post", "put", "patch", "delete"]
-                if path_method.lower() not in valid_methods:
-                    continue
-
                 operation = PathEndpointData(
                     path=route_path,
                     method=path_method.upper(),
                     servers=route_path_server if route_path_server else global_servers,
                     security=[] if override_global_security else (operation_detail_path_security if operation_detail_path_security else global_security),
-                    request_body=operation_details.get("requestBody"),
-                    response=operation_details.get("responses"),
+                    request_body=operation_details.get("requestBody", {}),
+                    response=operation_details.get("responses", {}),
+                    parameters=operation_details.get("parameters", [])
                 )
 
                 parsed_endpoint_data.operations.append(operation)

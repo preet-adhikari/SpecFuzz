@@ -22,10 +22,10 @@ security:
 paths:
   /weapons/blades-of-chaos:
     get:
-      security:
-        - OAuth2:
-            - read
-            - write
+      # security:
+      #   - OAuth2:
+      #       - read
+      #       - write
       
       summary: Get Blades of Chaos stats
       # Inherits GLOBAL server: https://api.midgard.com/v1

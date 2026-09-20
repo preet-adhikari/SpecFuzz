@@ -1,3 +1,5 @@
+import pprint
+
 from ..parsed_endpoint_data import (
     ServerData,
     ResolvedSecurity,
@@ -198,6 +200,7 @@ def handle_security(security_items: dict, securitySchemes=None):
             return
         pass
 
+    
     extracted_resolved_security_schemes = []
     # Global security check over the OpenAPI spec
 
@@ -226,9 +229,24 @@ def handle_security(security_items: dict, securitySchemes=None):
                     continue
                 else:
                     # Check if the scheme actually exists in securitySchemes
+                    # for security_scheme_name in security_item:
+                    #     if securitySchemes.get(security_scheme_name):
+                    #         extracted_resolved_security_schemes.append(
+                    #             ResolvedSecurity(
+                    #                 scheme_name=security_scheme_name,
+                    #                 mechanics=securitySchemes.get(security_scheme_name),
+                    #                 applied_scopes=(
+                    #                     security_item.get(security_scheme_name)
+                    #                     if security_item.get(security_scheme_name)
+                    #                     else []
+                    #                 ),
+                    #             )
+                    #         )
+                    # pass
                     for security_scheme_name in security_item:
                         if securitySchemes.get(security_scheme_name):
-                            extracted_resolved_security_schemes.append(
+                            single_requirement = SecurityRequirement()
+                            single_requirement.schemes.append(
                                 ResolvedSecurity(
                                     scheme_name=security_scheme_name,
                                     mechanics=securitySchemes.get(security_scheme_name),
@@ -239,6 +257,5 @@ def handle_security(security_items: dict, securitySchemes=None):
                                     ),
                                 )
                             )
-                    pass
-
+                            extracted_resolved_security_schemes.append(single_requirement)
     return extracted_resolved_security_schemes

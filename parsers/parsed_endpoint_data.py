@@ -42,6 +42,7 @@ class PathEndpointData:
     security: List[SecurityRequirement] = field(default_factory=list)
     request_body: Optional[Dict[str, Any]] = None
     response: Optional[Dict[str, Any]] = None
+    parameters: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # # 4. THE FINAL PAYLOAD TO THE ORCHESTRATOR

@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: God of War API - Orchestrator Test
+  version: 1.0.0
+
+# Global server
+servers:
+  - url: https://api.midgard.com/v1
+
+# Global security (Requires BOTH ApiKey and OAuth2)
+security:
+  - ApiKeyAuth: []
+    OAuth2: [read, write]
+
+paths:
+  /weapons/blades-of-chaos:
+    get:
+      summary: Tests global security injection and default server
+      responses:
+        '200':
+          description: Success
+
+  /realms/alfheim:
+    get:
+      summary: Tests server URL overrides
+      servers:
+        - url: https://alfheim-gateway.midgard.com/v2
+      responses:
+        '200':
+          description: Success
+
+  /admin/kratos/rage-mode:
+    post:
+      summary: Tests security overrides (Demands BasicAuth instead of Global)
+      security:
+        - BasicAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration:
+                  type: integer
+                  example: 60
+      responses:
+        '200':
+          description: Success
+
+  /bestiary/draugr:
+    get:
+      summary: Tests public endpoints (No security injection should happen)
+      security: []
+      responses:
+        '200':
+          description: Success
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OAuth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.midgard.com/oauth/token
+          scopes:
+            read: Grants read access
+            write: Grants write access
+    BasicAuth:
+      type: http
+      scheme: basic

@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict
 import random
 import string
+import sys
+import json
+from dataclasses import asdict
 
 class FuzzingStrategy(ABC):
     @abstractmethod
@@ -9,14 +12,27 @@ class FuzzingStrategy(ABC):
         """Every strategy must take the parsed spec and return a JSON payload"""
         pass
 
+    @abstractmethod
+    def generate_path_params(self, parameters: list) -> dict:
+        pass
+
 
 class HappyPathStrategy(FuzzingStrategy):
     """Generates 100% valid data based on the schema rules."""
 
     def generate_payload(self, schema: Dict[str, Any], expected_response: dict) -> Any:
+        """Process and combine the built payload with the expected response body"""
+
+        expected_response = self._extract_response_codes_from_response(expected_response)
+
+        payload = self._build_happypath_data(schema)
+
+        return payload, expected_response
+
+    def _build_happypath_data(self, schema: Dict[str, Any]):
+        """Building the HappyPathStrategy Data"""
         if not schema:
             return None
-
         # 1. Short-circuits: If there's a hardcoded example or enum, use it safely!
         if "example" in schema:
             return schema["example"]
@@ -31,7 +47,7 @@ class HappyPathStrategy(FuzzingStrategy):
             properties = schema.get("properties", {})
             for key, prop_schema in properties.items():
                 # The function calls itself to figure out what the property is!
-                payload[key] = self.generate_payload(prop_schema)
+                payload[key] = self._build_happypath_data(prop_schema)
             return payload
 
         # 3. RECURSION: Handling Arrays
@@ -39,33 +55,89 @@ class HappyPathStrategy(FuzzingStrategy):
             items_schema = schema.get("items", {})
             # Do this only when minItems and maxItems aren't set
             # Generate a list with 1 to 3 valid items by calling itself
+            raw_max = schema.get("maxItems")
+            raw_min = schema.get("minItems")
+
+            generate_range = self._calculate_min_max_bounds(raw_max, raw_min)
             return [
-                self.generate_payload(items_schema) for _ in range(self._calculate_min_max_bounds(schema.get("maxItems"), schema.get("minItems")))
+                self._build_happypath_data(items_schema) for _ in range(int(generate_range))
             ]
 
         # 4. Base Cases: Generating Primitives
         elif schema_type == "string":
             return "valid_" + "".join(random.choices(string.ascii_letters, k=6))
         elif schema_type in ["integer", "number"]:
+            if schema_type == "number":
+                is_float = True
+            else:
+                is_float = False
             # Check for maximum and minimum if they exist for numbers and integers
-            return self._calculate_min_max_bounds(schema.get("maximum"), schema.get("minimum"))
+            return self._calculate_min_max_bounds(schema.get("maximum"), schema.get("minimum"), is_float)
         elif schema_type == "boolean":
             return random.choice([True, False])
 
         return None
-    
-    @staticmethod
-    # This method automatically returns the right bounds for minimum and maximum setting of numbers
-    def _calculate_min_max_bounds(max, min) -> int:
-        if max is not None and min is not None:
-            return random.randint(min, max)
-        elif max is not None:
-            return random.randint(max - 5, max) # Using 5 as an arbitrary number
-        elif min is not None:
-            return random.randint(min, min + 5)
-        else: 
-            return random.randint(1, 5)
 
+    def generate_path_params(self, parameters: list) -> dict:
+        """Takes the parameters list and returns a dictionary of fuzzed values."""
+        path_params = {}
+        if not parameters:
+            return path_params
+
+        for param in parameters:
+            param_name = param.get("name")
+            param_schema = param.get("schema", {})
+
+            # Only fuzz parameters that are actually in the path(url)
+            if param.get("in") == "path" and param_name and param_schema:
+
+                fuzzed_value = self._build_happypath_data(param_schema)
+                path_params[param_name] = fuzzed_value
+
+        return path_params
+
+
+    @staticmethod
+    def _extract_response_codes_from_response(expected_response: dict) -> dict:
+        """Extracts 2XX response codes from the response_body in the specification"""
+
+        extracted_response_code = {}
+        for code, code_body in expected_response.items():
+            if str(code).startswith('2'):
+                extracted_response_code[code] = code_body
+
+        if not extracted_response_code:
+            return {
+                '200': {}, # Standard success (GET, PUT)
+                '201': {}, # Creation success (POST)
+                '204': {}  # No content success (DELETE)
+            }
+
+        return extracted_response_code
+
+    @staticmethod
+    def _calculate_min_max_bounds(max, min, is_float=False) -> float | int:
+        """Returns integer or float based on requirement"""
+
+        if is_float:
+            if max is not None and min is not None:
+                return round(random.uniform(min, max), 2)
+            elif max is not None:
+                return round(random.uniform(max - 5.0, max), 2)
+            elif min is not None:
+                return round(random.uniform(min, min + 5.0), 2)
+            else:
+                return round(random.uniform(1.0, 5.0), 2)
+
+        else:
+            if max is not None and min is not None:
+                return random.randint(int(min), int(max))
+            elif max is not None:
+                return random.randint(int(max) - 5, int(max))
+            elif min is not None:
+                return random.randint(int(min), int(min) + 5)
+            else:
+                return random.randint(1, 5)
 
 
 class MissingRequiredFieldsStrategy(FuzzingStrategy):
@@ -91,6 +163,9 @@ class MissingRequiredFieldsStrategy(FuzzingStrategy):
 
         return valid_payload
 
+    def generate_path_params(self, parameters: list) -> dict:
+            pass
+
 
 class TypeMismatchStrategy(FuzzingStrategy):
     """Purposefully swaps a data type (e.g., sends a dict instead of a string)."""
@@ -114,3 +189,7 @@ class TypeMismatchStrategy(FuzzingStrategy):
         }
 
         return valid_payload
+
+
+    def generate_path_params(self, parameters: list) -> dict:
+            pass
