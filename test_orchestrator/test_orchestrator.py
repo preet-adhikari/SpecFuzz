@@ -5,6 +5,7 @@ import requests
 
 from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
 from execution_engine.execution_engine import ExecutionEngine
+from execution_engine.execution_result import ExecutionResult
 
 class TestOrchestrator:
     def __init__(self, blueprints: list) -> None:
@@ -55,12 +56,22 @@ class TestOrchestrator:
 
             # Check if job has crossed max retries
             if current_job["tries"] > self.max_retries:
-                # Job has to be marked as dead
                 print(
                     f"💀 Job died after {self.max_retries} attempts: {current_job['blueprint']['endpoint']}"
                 )
                 current_job["status"] = "dead"
+
+                # Attaching mock result
+                current_job["results"] = {
+                    "status_code": 502,
+                    "error": "Max retries exceeded",
+                }
+
+                self.completed_jobs.append(current_job)
                 self.dead_jobs.append(current_job)
+
+                # Save the dead job to the JSONL file so the reporter sees it
+                self._send_data_to_test_results_storage(current_job)
                 continue
 
             # 4. Token Injection
@@ -70,7 +81,7 @@ class TestOrchestrator:
                 f"[{current_job['tries']}/{self.max_retries}] Executing {current_job['blueprint']['method']} {current_job['blueprint']['endpoint']}"
             )
 
-            # 5. Execution: Map directly to the dedicated engine
+            # Execution
             response_data = self._fire_execution_engine(current_job)
 
             # Routing the Response
@@ -82,6 +93,7 @@ class TestOrchestrator:
         blueprint = job["blueprint"]
         security_instructions = blueprint.get("security", [])
 
+        # For testing purposes
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
         for sec in security_instructions:
@@ -99,11 +111,15 @@ class TestOrchestrator:
         blueprint = job["blueprint"]
         url = blueprint.get("endpoint")
 
-        # 1. Intercept the Dry Run FIRST (Keeps the Execution Engine pure)
+        # Intercept URL to force a 502 Bad Gateway
+        if "helheim" in url:
+            return {"status_code": 502, "error": "Mock Network Failure"}
+
+        # For Dry run
         if "midgard.com" in url or "alfheim-gateway" in url:
             return {"status_code": 200, "error": None}
 
-        # 2. Map Orchestrator Dictionary -> ExecutionEngineRequestData
+        # Map Orchestrator Dictionary -> ExecutionEngineRequestData
         request_payload = ExecutionEngineRequestData(
                 method=blueprint.get("method").upper(),
                 url=url,
@@ -111,11 +127,9 @@ class TestOrchestrator:
                 payload=blueprint.get("payload")
             )
 
-        # 3. Fire the real engine
+        # Fire the real engine
         result = self.execution_engine.automate_http_request(request_payload)
 
-        # 4. Map ExecutionResult back -> Orchestrator Dictionary
-        # (This allows your existing _route_response logic to work without rewriting it)
         if result.is_success:
             return {"status_code": 200, "error": None} 
         else:
@@ -132,7 +146,7 @@ class TestOrchestrator:
             job["results"] = response_data
             self.completed_jobs.append(job)
 
-            # Fail-safe: Save to disk immediately
+            # Fail-safe: Save to disk
             self._send_data_to_test_results_storage(job)
 
     def _send_data_to_test_results_storage(self, job):

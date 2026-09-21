@@ -58,14 +58,15 @@ class TestGenerator:
                             })
 
                     base_url = "http://localhost:8080" # Keeping this as default for now
-                    # If the parser handed us a list of servers, grab the first one
+                    # If the parser hands a list of servers, grab the first one
                     if isinstance(operation.servers, list):
                         base_url = operation.servers[0].url
-                    # If the parser handed us a single ServerData object directly, just use it
+                    # If the parser hands a single ServerData object directly
                     else:
                         base_url = operation.servers.url
                         
                     full_endpoint_url = f"{base_url}{fuzzed_endpoint}"
+                    
                     # Final blueprint
                     blueprint = {
                         "endpoint": full_endpoint_url,

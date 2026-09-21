@@ -12,6 +12,6 @@ class SpecFactory:
             # Goes through the file object, reads the first line
             first_line = file.readline().strip()
             if "openapi" in first_line:
-                return OpenAPIParser()
+                return OpenAPIParser(file_path)
             else:
                 raise ValueError("Unknown Format.")

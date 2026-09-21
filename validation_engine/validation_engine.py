@@ -45,7 +45,7 @@ class ValidationEngine:
             )
             return
 
-        # Print the final summary
+        # Final summary
         print("\n=========================================")
         print("🏆 TEST RUN SUMMARY")
         print("=========================================")

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import random
 import string
 import sys
@@ -148,7 +148,7 @@ class MissingRequiredFieldsStrategy(FuzzingStrategy):
 
     def generate_payload(self, schema: Dict[str, Any], expected_response: dict) -> Any:
         # Build a perfectly valid payload first
-        valid_payload = self.base_generator.generate_payload(schema)
+        valid_payload = self.base_generator.generate_payload(schema, expected_response)
 
         # If it's not an object or has no required fields, we can't break it this way
         if schema.get("type") != "object" or not schema.get("required"):
@@ -175,7 +175,7 @@ class TypeMismatchStrategy(FuzzingStrategy):
 
     def generate_payload(self, schema: Dict[str, Any], expected_response) -> Any:
         # Build a perfectly valid payload first
-        valid_payload = self.base_generator.generate_payload(schema)
+        valid_payload = self.base_generator.generate_payload(schema, expected_response)
 
         if schema.get("type") != "object" or not valid_payload:
             return valid_payload

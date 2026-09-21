@@ -78,12 +78,16 @@ def parse_openapi_endpoints(processed_spec: dict):
                     processed_spec.get("components", {}).get("securitySchemes",{}),
                 )
                 
+                if override_global_security:
+                    security = []
+                else:
+                    security = (operation_detail_path_security or global_security) or []
 
                 operation = PathEndpointData(
                     path=route_path,
                     method=path_method.upper(),
                     servers=route_path_server if route_path_server else global_servers,
-                    security=[] if override_global_security else (operation_detail_path_security if operation_detail_path_security else global_security),
+                    security=security,
                     request_body=operation_details.get("requestBody", {}),
                     response=operation_details.get("responses", {}),
                     parameters=operation_details.get("parameters", [])

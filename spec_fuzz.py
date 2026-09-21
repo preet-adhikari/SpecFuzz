@@ -46,7 +46,7 @@ def main():
     # parser_main(args.spec_file)
     try:
         parser = SpecFactory.peek_parser_type(args.spec_file)
-        parsed_data = parser.parse(args.spec_file)
+        parsed_data = parser.parse()
         # print(parsed_data)
         # Testing if FuzzingStrategy works
         happy_path = HappyPathStrategy()
@@ -58,6 +58,7 @@ def main():
 
         # result, response = happy_path.generate_payload(schema, expected_response)
 
+        #TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
         result = TestGenerator(happy_path)
         blueprints_list = result.generate_test_cases(parsed_data)
 
