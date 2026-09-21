@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Travel Itinerary API
+  version: 1.0.0
+servers:
+  # Scenario 1: The "Happy Path" (Standard variables with defaults)
+  - url: https://{environment}.travel-api.com/{version}
+    description: Primary API Server
+    variables:
+      environment:
+        default: production
+        enum:
+          - production
+          - staging
+          - dev
+      version:
+        default: v1
+
+  # Scenario 2: The "Enum Fallback" (Missing default, has enum)
+  - url: https://{region}.travel-api.com/routes
+    description: Regional Routing Server
+    variables:
+      region:
+        enum:
+          - us-east
+          - eu-west
+          - ap-south
+
+  # Scenario 3: The "Broken" Case (Missing both default and enum)
+  - url: https://analytics.{module}.travel-api.com
+    description: Broken Analytics Server
+    variables:
+      module:
+        description: "The API author forgot to add a default or enum here!"
+
+  # Scenario 4: The Static URL (No variables block at all)
+  - url: https://static-assets.travel-api.com/v1
+    description: Static Asset Server
+
+paths: {}

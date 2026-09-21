@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: God of War API - Orchestrator Test
+  version: 1.0.0
+
+# Global server
+servers:
+  - url: https://api.midgard.com/v1
+
+# Global security (Requires BOTH ApiKey and OAuth2)
+security:
+  - ApiKeyAuth: []
+    OAuth2: [read, write]
+
+paths:
+  # --- PASSING ENDPOINTS (Happy Path) ---
+  /weapons/blades-of-chaos:
+    get:
+      summary: Tests global security injection and default server
+      responses:
+        '200':
+          description: Success
+
+  /realms/alfheim:
+    get:
+      summary: Tests server URL overrides
+      servers:
+        - url: https://alfheim-gateway.midgard.com/v2
+      responses:
+        '200':
+          description: Success
+
+  /admin/kratos/rage-mode:
+    post:
+      summary: Tests security overrides (Demands BasicAuth instead of Global)
+      security:
+        - BasicAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration:
+                  type: integer
+                  example: 60
+      responses:
+        '200':
+          description: Success
+
+  /bestiary/draugr:
+    get:
+      summary: Tests public endpoints (No security injection should happen)
+      security: []
+      responses:
+        '200':
+          description: Success
+
+  # --- LOGICALLY FAILING ENDPOINTS (Fuzzer Targets) ---
+  
+  # Fuzzer Target 1: Path Boundary Violation
+  /weapons/leviathan-axe/{level}:
+    put:
+      summary: Tests path parameter boundary fuzzing (Expected 400/500 HTTP response)
+      description: The parameter is properly defined, so the Python code won't crash. But the fuzzer will inject massive integers outside the maximum limit to try and break the server.
+      parameters:
+        - name: level
+          in: path
+          required: true
+          schema:
+            type: integer
+            maximum: 9
+      responses:
+        '200':
+          description: Success
+
+  # Fuzzer Target 2: Payload Boundary Violation
+  /magic/bifrost/travel:
+    post:
+      summary: Tests payload string fuzzing (Expected 400 HTTP response)
+      description: Valid schema. The generator will create strings exceeding the 10-character limit to test the server's validation logic.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                destination:
+                  type: string
+                  maxLength: 10
+      responses:
+        '200':
+          description: Success
+
+  # Fuzzer Target 3: Authentication Rejection
+  /realm-tears/close:
+    delete:
+      summary: Tests unauthorized access (Expected 401 HTTP response)
+      description: Uses a valid BasicAuth scheme. If the orchestrator's .env dictionary lacks this credential, it will successfully execute but cleanly log a 401 Unauthorized.
+      security:
+        - BasicAuth: []
+      responses:
+        '204':
+          description: Closed successfully
+
+  /realms/helheim:
+    get:
+      summary: Tests 502 Bad Gateway retry logic
+      responses:
+        '502':
+          description: Server down
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    OAuth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.midgard.com/oauth/token
+          scopes:
+            read: Grants read access
+            write: Grants write access
+    BasicAuth:
+      type: http
+      scheme: basic

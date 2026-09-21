@@ -1,0 +1,74 @@
+openapi: 3.0.4
+info:
+  title: God of War API
+  version: 1.0.0
+
+# ==========================================
+# GLOBAL SCOPE (Applies to everything by default)
+# ==========================================
+servers:
+  - url: https://api.midgard.com/v1
+    description: Primary Production Server
+
+security:
+  - SpartanApiKey: []  # Every endpoint requires the API key by default
+
+# ==========================================
+# THE GATES (Paths / Operations)
+# ==========================================
+paths:
+  /weapons/blades-of-chaos:
+    get:
+      summary: Get Blades of Chaos stats
+      # Inherits GLOBAL server: https://api.midgard.com/v1
+      # Inherits GLOBAL security: Requires SpartanApiKey
+      responses:
+        '200':
+          description: Success
+
+  /realms/alfheim:
+    get:
+      summary: Travel to Alfheim
+      # OVERRIDES GLOBAL SERVER: Uses a completely different URL
+      servers:
+        - url: https://alfheim-gateway.midgard.com/v2
+          description: Realm Travel Microservice
+      # Inherits GLOBAL security: Requires SpartanApiKey
+      responses:
+        '200':
+          description: Arrived in Alfheim
+
+  /bestiary/draugr:
+    get:
+      summary: Public information about Draugr
+      # Inherits GLOBAL server: https://api.midgard.com/v1
+      # OVERRIDES GLOBAL SECURITY: The empty array means NO AUTHENTICATION required!
+      security: [] 
+      responses:
+        '200':
+          description: Success
+
+  /admin/kratos/rage-mode:
+    post:
+      summary: Trigger Spartan Rage
+      # Inherits GLOBAL server: https://api.midgard.com/v1
+      # OVERRIDES GLOBAL SECURITY: Demands a username/password instead of the API key
+      security:
+        - AdminBasicAuth: []
+      responses:
+        '200':
+          description: Rage activated
+
+# ==========================================
+# THE ARMORY (Components)
+# ==========================================
+components:
+  securitySchemes:
+    # Defining the locks used above
+    SpartanApiKey:
+      type: apiKey
+      in: header
+      name: X-Spartan-Token
+    AdminBasicAuth:
+      type: http
+      scheme: basic

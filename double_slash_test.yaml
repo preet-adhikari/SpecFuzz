@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: Travel Itinerary API - Server Test Suite
+  version: 1.0.0
+servers:
+      # 12. Local Broken URL (Malformed double-slash to test Path-Level isolation)
+      - url: //broken-local.travel.com/v1
+        description: Malformed local URL - should be dropped without breaking #10 and #11
+  # ---------------------------------------------------------
+  # GLOBAL SERVERS: THE "HAPPY PATHS"
+  # ---------------------------------------------------------
+
+# ---------------------------------------------------------
+# THE PATHS (With Local Server Overrides)
+# ---------------------------------------------------------
+paths:
+  /itineraries:
+
+    get:
+      summary: Get a list of all active itineraries
+      responses:
+        '200':
+          description: A JSON array of itinerary objects
+    post:
+      summary: Create a new itinerary
+      responses:
+        '201':
+          description: Itinerary created successfully
+

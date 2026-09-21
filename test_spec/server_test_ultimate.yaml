@@ -1,0 +1,182 @@
+openapi: 3.0.3
+info:
+  title: Travel Itinerary API - Server Test Suite
+  version: 1.0.0
+servers:
+  # ---------------------------------------------------------
+  # GLOBAL SERVERS: THE "HAPPY PATHS"
+  # ---------------------------------------------------------
+
+  # 1. Static Absolute URL
+  - url: https://api.travel.com/v1
+    description: Standard static URL
+
+  # 1b. Forgotten Protocol (Should be caught by Check #4)
+  - url: api.travel.com/v1
+    description: The developer forgot the protocol
+
+  # 2. Static Relative URL
+  - url: /api/v2/flights
+    description: Relative path URL
+
+  # 3. Single Variable
+  - url: https://{environment}.travel.com
+    variables:
+      environment:
+        default: production
+    description: Single variable
+
+  # 4. Multiple Variables
+  - url: https://{environment}.travel.com:{port}/{basePath}
+    variables:
+      port:
+        default: "8443"
+      basePath:
+        default: v2
+      environment:
+        default: staging
+    description: Multiple variables
+
+  # 5. Enum Fallback
+  - url: https://api.travel.com/region/{region_code}
+    variables:
+      region_code:
+        enum: [us-east, eu-west, ap-south]
+    description: Enum Fallback
+
+  # 6. Unused Variables
+  - url: https://secure.travel.com/v1
+    variables:
+      forgotten_var:
+        default: "nobody_uses_me"
+    description: Unused variables
+
+  # 6b. Used AND Unused Variables (URL has one, dict has two)
+  - url: https://{environment}.travel.com/v2
+    variables:
+      environment:
+        default: sandbox
+      ghost_variable:
+        default: "I am defined here but missing from the URL string"
+    description: Used AND Unused Variables (URL has one, dict has two)
+  # ---------------------------------------------------------
+  # GLOBAL SERVERS: THE "BROKEN PATHS"
+  # ---------------------------------------------------------
+
+  # 7. Missing Default and Enum
+  - url: https://analytics.{module}.travel.com
+    variables:
+      module:
+        description: No default and no enum provided.
+    description: Missing Default and Enum
+
+  # 8. Unmapped Variable
+  - url: https://{unknown_subdomain}.travel.com/v1
+    description: The URL expects a variable, but the variables block doesn't exist.
+
+  # 9. Incomplete Variables Dict
+  - url: https://{environment}.travel.com/{version}
+    variables:
+      environment:
+        default: production
+
+security: []
+# ---------------------------------------------------------
+# THE PATHS (With Local Server Overrides)
+# ---------------------------------------------------------
+paths:
+  /itineraries:
+    # -------------------------------------------------------
+    # PATH-LEVEL SERVERS (Overrides Global Servers for this Path)
+    # -------------------------------------------------------
+    servers:
+      # 10. Local Valid Override (Dedicated booking microservice)
+      - url: https://itineraries.travel.com/v1
+        description: Dedicated absolute URL for itinerary operations
+        
+      # 10b. Local Enum Fallback
+      - url: https://{region}.itineraries.travel.com/v1
+        variables:
+          region:
+            enum: [eu-central, us-west]
+        description: Local server with enum fallback
+
+      # 12. Local Broken URL (Malformed double-slash to test Path-Level isolation)
+      - url: //broken-local.travel.com/v1
+        description: Malformed local URL - should be dropped without breaking #10 and #11
+        
+      # 11. Local Relative Override (Valid relative path for local proxying)
+      - url: /local-proxy/itineraries
+        description: Valid relative path override
+
+
+    get:
+      summary: Get a list of all active itineraries
+      responses:
+        '200':
+          description: A JSON array of itinerary objects
+    post:
+      servers:
+        # 6b. Used AND Unused Variables (URL has one, dict has two)
+      - url: https://{environment}.travel.com/v2
+        variables:
+          environment:
+            default: sandbox
+          ghost_variable:
+            default: "I am defined here but missing from the URL string"
+        description: Used AND Unused Variables (URL has one, dict has two)
+      summary: Create a new itinerary
+      responses:
+        '201':
+          description: Itinerary created successfully
+
+  /itineraries/{id}:
+    # -------------------------------------------------------
+    # PATH WITH NO LOCAL SERVERS (Should Fallback to Global)
+    # -------------------------------------------------------
+    get:
+      servers:
+      # 13. Local Server with Variable Resolution
+      - url: https://{archive_cluster}.travel.com/vault
+        variables:
+          archive_cluster:
+            default: cold-storage-us
+      summary: Retrieve a specific itinerary by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detailed itinerary data
+        '404':
+          description: Itinerary not found
+
+  /itineraries/archive:
+    # -------------------------------------------------------
+    # PATH-LEVEL SERVER WITH VARIABLES
+    # -------------------------------------------------------
+    servers:
+      # 13. Local Server with Variable Resolution
+      - url: https://{archive_cluster}.travel.com/vault
+        variables:
+          archive_cluster:
+            default: cold-storage-us
+            
+      # 14. Local Broken Variable (No default/enum)
+      - url: https://archive.{datacenter}.travel.com/vault
+        variables:
+          datacenter:
+            description: Missing default and enum - should fail cleanly.
+            
+      # 15. Local Unmapped Variable
+      - url: https://{secret_zone}.travel.com/vault
+        description: Expects a variable but has no dict.
+
+    get:
+      summary: Get archived itineraries
+      responses:
+        '200':
+          description: Archived itineraries list

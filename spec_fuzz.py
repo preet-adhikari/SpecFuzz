@@ -3,8 +3,13 @@ import os
 import sys
 import json
 from spec_factory import SpecFactory
-from fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
+from test_generator.fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
 from dataclasses import asdict
+import pprint
+
+from test_generator.test_generator import TestGenerator
+from test_orchestrator.test_orchestrator import TestOrchestrator
+from validation_engine.validation_engine import ValidationEngine
 
 def main():
     """
@@ -36,21 +41,32 @@ def main():
     print(f"Loading specification from: {args.spec_file}")
     print("Initializing the parser...")
 
+    # Clearing the results file for testing
+    open("test_results.jsonl", "w").close()
     # parser_main(args.spec_file)
     try:
         parser = SpecFactory.peek_parser_type(args.spec_file)
-        parsed_data = parser.parse(args.spec_file)
+        parsed_data = parser.parse()
         # print(parsed_data)
         # Testing if FuzzingStrategy works
-        # happy_path = HappyPathStrategy()
+        happy_path = HappyPathStrategy()
         # missing_fields = MissingRequiredFieldsStrategy()
         type_mismatch = TypeMismatchStrategy()
         # print(json.dumps(asdict(parsed_data), indent=4))
         # print(type(parsed_data.operations))
         # print(parsed_data.operations.index("request_body"))
-        schema = parsed_data.operations[0].request_body.get("content").get("application/json").get("schema")
-        result = type_mismatch.generate_payload(schema)
-        print(result)
+
+        # result, response = happy_path.generate_payload(schema, expected_response)
+
+        #TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
+        result = TestGenerator(happy_path)
+        blueprints_list = result.generate_test_cases(parsed_data)
+
+        orchestrator = TestOrchestrator(blueprints_list)
+        orchestrator.execute_tests()
+
+        validator = ValidationEngine("test_results.jsonl")
+        validator.generate_report()
 
     except ValueError as e:
         print(f"⛔️{e}")

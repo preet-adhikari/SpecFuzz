@@ -6,47 +6,47 @@ info:
 
 paths:
   /characters:
-    get:
-      summary: List characters
-      description: Retrieve a list of characters.
-      parameters:
-        - in: query
-          name: realm
-          schema:
-            type: string
-          description: Return the list of characters from a particular realm/world.
-          example: Midgard
-        - in: query
-          name: alignment
-          schema:
-            type: string
-            nullable: true
-            enum:
-              - Aesir
-              - Vanir
-              - Jötnar
-              - Elves
-              - Dwarves
-              - Midgardians
-              - Spartan
-          description: Return the list of characters from a particular alignment.     
-      responses:
-        '200':
-          description: A successful list of characters.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ArrayOfCharacters"
-        '400':
-          description: Bad request, query parameters are malformed or invalid.
-        '422':
-          description: Unprocessable Entity. Query parameters failed validation constraints. 
-        '500':
-          description: Internal Server error. The Nine Realms have collapsed.
-        '503':
-          description: Service temporarily unavailable due to overload or maintenance.
-        default:
-          description: Unexpected error
+    # get:
+    #   summary: List characters
+    #   description: Retrieve a list of characters.
+    #   parameters:
+    #     - in: query
+    #       name: realm
+    #       schema:
+    #         type: string
+    #       description: Return the list of characters from a particular realm/world.
+    #       example: Midgard
+    #     - in: query
+    #       name: alignment
+    #       schema:
+    #         type: string
+    #         nullable: true
+    #         enum:
+    #           - Aesir
+    #           - Vanir
+    #           - Jötnar
+    #           - Elves
+    #           - Dwarves
+    #           - Midgardians
+    #           - Spartan
+    #       description: Return the list of characters from a particular alignment.     
+    #   responses:
+    #     '200':
+    #       description: A successful list of characters.
+    #       content:
+    #         application/json:
+    #           schema:
+    #             $ref: "#/components/schemas/ArrayOfCharacters"
+    #     '400':
+    #       description: Bad request, query parameters are malformed or invalid.
+    #     '422':
+    #       description: Unprocessable Entity. Query parameters failed validation constraints. 
+    #     '500':
+    #       description: Internal Server error. The Nine Realms have collapsed.
+    #     '503':
+    #       description: Service temporarily unavailable due to overload or maintenance.
+    #     default:
+    #       description: Unexpected error
     post:
       summary: Create a new character
       description: Add a new character profile to the database.

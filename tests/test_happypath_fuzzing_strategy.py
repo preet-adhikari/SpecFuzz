@@ -1,9 +1,16 @@
 # Test for fuzzing strategy
 
 import pytest
-from fuzzing_strategy import HappyPathStrategy
+from test_generator.fuzzing_strategy import HappyPathStrategy
 
 happy_path_strategy = HappyPathStrategy()
+
+
+mock_expected_response = {
+        "201" : "Number created",
+        "200" : "Request is good"
+    }
+
 
 
 def test_max_and_min_bounds():
@@ -21,9 +28,9 @@ def test_max_and_min_bounds():
         "maximum": 5,
     }
 
-    result_array = happy_path_strategy.generate_payload(mock_schema_array)
-    result_integer = happy_path_strategy.generate_payload(mock_schema_integer)
-
+    result_array = happy_path_strategy.generate_payload(mock_schema_array, mock_expected_response)
+    result_integer = happy_path_strategy.generate_payload(mock_schema_integer, mock_expected_response)
+    print(result_array)
     assert isinstance(result_array, list)
     assert isinstance(result_integer, int)
     assert len(result_array) >= 1
@@ -39,7 +46,7 @@ def test_negative_integer_math():
         "maximum": -10,
     }
 
-    result_negative = happy_path_strategy.generate_payload(mock_schema_negative_integer)
+    result_negative = happy_path_strategy.generate_payload(mock_schema_negative_integer, mock_expected_response)
 
     assert isinstance(result_negative, int)
     assert result_negative >= -50 and result_negative <= -10
@@ -54,7 +61,7 @@ def test_object_recursion():
         },
     }
 
-    result = happy_path_strategy.generate_payload(mock_schema)
+    result = happy_path_strategy.generate_payload(mock_schema, mock_expected_response)
 
     assert isinstance(result, dict)
     assert "username" in result
