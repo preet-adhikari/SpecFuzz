@@ -73,6 +73,7 @@ def main():
         sys.exit(1)
 
     except Exception as e:
+        raise e
         print(f"An unexpected fatal error occurred: {e}")
         sys.exit(1)        
 

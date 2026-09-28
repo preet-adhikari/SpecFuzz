@@ -2,6 +2,7 @@ from collections import deque
 import os
 import json
 import requests
+import base64
 
 from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
 from execution_engine.execution_engine import ExecutionEngine
@@ -14,7 +15,8 @@ class TestOrchestrator:
         self.credentials = {
             "APIKEYAUTH": os.getenv("API_KEY", "spartan_123_default"),
             "OAUTH2": os.getenv("OAUTH_TOKEN", "Bearer temp_oauth_token"),
-            "BASICAUTH": os.getenv("BASIC_AUTH", "Basic admin:password123"),
+            # "BASICAUTH": os.getenv("BASIC_AUTH", "Basic admin:password123"),
+            "BASICAUTH": os.getenv("BASIC_AUTH", "kratos:sparta123"),
         }
         # Create the queue
         self.pending_queue = deque()
@@ -74,7 +76,7 @@ class TestOrchestrator:
                 self._send_data_to_test_results_storage(current_job)
                 continue
 
-            # 4. Token Injection
+            # Token Injection
             self._attach_security_tokens(current_job)
 
             print(
@@ -101,7 +103,11 @@ class TestOrchestrator:
                 # Convert scheme name to uppercase to match our RAM dictionary keys
                 scheme = sec.get("scheme_name").upper()
                 token = self.credentials.get(scheme, "UNKNOWN_TOKEN")
-                headers[sec.get("key_name")] = token
+                if scheme == "BASICAUTH":
+                    encoded_token = base64.b64encode(token.encode('utf-8')).decode('utf-8')
+                    headers[sec.get("key_name")] = f"Basic {encoded_token}"    
+                else:
+                    headers[sec.get("key_name")] = token
 
         # Attach the finalized headers to the job state
         job["final_headers"] = headers
@@ -111,13 +117,13 @@ class TestOrchestrator:
         blueprint = job["blueprint"]
         url = blueprint.get("endpoint")
 
-        # Intercept URL to force a 502 Bad Gateway
-        if "helheim" in url:
-            return {"status_code": 502, "error": "Mock Network Failure"}
+        # # Intercept URL to force a 502 Bad Gateway
+        # if "helheim" in url:
+        #     return {"status_code": 502, "error": "Mock Network Failure"}
 
-        # For Dry run
-        if "midgard.com" in url or "alfheim-gateway" in url:
-            return {"status_code": 200, "error": None}
+        # # For Dry run
+        # if "midgard.com" in url or "alfheim-gateway" in url:
+        #     return {"status_code": 200, "error": None}
 
         # Map Orchestrator Dictionary -> ExecutionEngineRequestData
         request_payload = ExecutionEngineRequestData(
@@ -127,13 +133,18 @@ class TestOrchestrator:
                 payload=blueprint.get("payload")
             )
 
+        print(request_payload.headers)
         # Fire the real engine
         result = self.execution_engine.automate_http_request(request_payload)
 
-        if result.is_success:
-            return {"status_code": 200, "error": None} 
-        else:
-            return {"status_code": 502, "error": result.error_message}
+        # if result.is_success:
+        #     return {"status_code": 200, "error": None}
+        # else:
+        #     return {"status_code": 502, "error": result.error_message}
+        return {
+            "status_code" : result.status_code,
+            "error" : result.error_message
+        }
 
     def _route_response(self, job, response_data):
         """Routes the job based on network success or failure."""
