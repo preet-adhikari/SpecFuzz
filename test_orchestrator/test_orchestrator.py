@@ -7,9 +7,10 @@ import base64
 from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
 from execution_engine.execution_engine import ExecutionEngine
 from execution_engine.execution_result import ExecutionResult
+from validation_engine.validation_engine import ValidationEngine
 
 class TestOrchestrator:
-    def __init__(self, blueprints: list) -> None:
+    def __init__(self, test_suite: list) -> None:
 
         # Get the credentials from the .env file
         self.credentials = {
@@ -30,14 +31,14 @@ class TestOrchestrator:
         self.execution_engine = ExecutionEngine()
 
         # Initialize queue
-        self._create_job_queue(blueprints)
+        self._create_job_queue(test_suite)
 
-    def _create_job_queue(self, blueprints):
-        """Wrapping test blueprints into jobs which are then added to the main queue"""
+    def _create_job_queue(self, test_suite):
+        """Wrapping test cases into jobs which are then added to the main queue"""
 
-        for blueprint in blueprints:
+        for test_case in test_suite:
             job = {
-                "blueprint" : blueprint,
+                "test_case" : test_case,
                 "result" : None,
                 "tries" : 0,
                 "status" : "pending"
@@ -59,7 +60,7 @@ class TestOrchestrator:
             # Check if job has crossed max retries
             if current_job["tries"] > self.max_retries:
                 print(
-                    f"💀 Job died after {self.max_retries} attempts: {current_job['blueprint']['endpoint']}"
+                    f"💀 Job died after {self.max_retries} attempts: {current_job['test_case']['endpoint']}"
                 )
                 current_job["status"] = "dead"
 
@@ -80,11 +81,15 @@ class TestOrchestrator:
             self._attach_security_tokens(current_job)
 
             print(
-                f"[{current_job['tries']}/{self.max_retries}] Executing {current_job['blueprint']['method']} {current_job['blueprint']['endpoint']}"
+                f"[{current_job['tries']}/{self.max_retries}] Executing {current_job['test_case']['method']} {current_job['test_case']['endpoint']}"
             )
 
             # Execution
             response_data = self._fire_execution_engine(current_job)
+
+            # TODO : Data to the validation engine should be sent from here
+            validation_engine = ValidationEngine()
+            validation_engine.validate(current_job, response_data)
 
             # Routing the Response
             self._route_response(current_job, response_data)
@@ -92,8 +97,8 @@ class TestOrchestrator:
     def _attach_security_tokens(self, job):
         """Attach security headers"""
 
-        blueprint = job["blueprint"]
-        security_instructions = blueprint.get("security", [])
+        test_case = job["test_case"]
+        security_instructions = test_case.get("security", [])
 
         # For testing purposes
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -114,8 +119,8 @@ class TestOrchestrator:
 
     def _fire_execution_engine(self, job):
         """Adapter that maps data and intercepts mocks before hitting the network."""
-        blueprint = job["blueprint"]
-        url = blueprint.get("endpoint")
+        test_case = job["test_case"]
+        url = test_case.get("endpoint")
 
         # # Intercept URL to force a 502 Bad Gateway
         # if "helheim" in url:
@@ -127,13 +132,13 @@ class TestOrchestrator:
 
         # Map Orchestrator Dictionary -> ExecutionEngineRequestData
         request_payload = ExecutionEngineRequestData(
-                method=blueprint.get("method").upper(),
+                method=test_case.get("method").upper(),
                 url=url,
                 headers=job["final_headers"],
-                payload=blueprint.get("payload")
+                payload=test_case.get("payload")
             )
 
-        print(request_payload.headers)
+
         # Fire the real engine
         result = self.execution_engine.automate_http_request(request_payload)
 
@@ -141,11 +146,13 @@ class TestOrchestrator:
         #     return {"status_code": 200, "error": None}
         # else:
         #     return {"status_code": 502, "error": result.error_message}
-        return {
-            "status_code" : result.status_code,
-            "error" : result.error_message
-        }
+        return result
+        # return {
+        #     "status_code" : result.status_code,
+        #     "error" : result.error_message
+        # }
 
+    #TODO: Check if additional logic is required for more cases of network errors
     def _route_response(self, job, response_data):
         """Routes the job based on network success or failure."""
         if response_data["error"] or response_data["status_code"] in [502, 503, 504]:

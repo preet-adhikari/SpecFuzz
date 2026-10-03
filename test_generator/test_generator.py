@@ -23,7 +23,7 @@ class TestGenerator:
 
     def generate_test_cases(self, parsed_endpoint_data: ParsedDataPackage) -> list:
         # Main data where all of the tests reside
-        blueprints = []
+        test_suite = []
 
         for operation in parsed_endpoint_data.operations:
 
@@ -34,10 +34,13 @@ class TestGenerator:
                 request_body = {}
 
             # Creating 5 test cases for now
-            for i in range(5):
+            # for i in range(5):
+            for i in range(1):
                 path_params = self._strategy.generate_path_params(operation.parameters)
                 fuzzed_endpoint = operation.path.format(**path_params)
-                payload, expected_response = self._strategy.generate_payload(request_body,operation.response or {})
+                
+                payload, expected_response = self._strategy.generate_payload(request_body,operation.response or {}, operation.method)
+
                 # Attach security placeholders here
                 security_instructions = []
 
@@ -65,13 +68,13 @@ class TestGenerator:
 
                 full_endpoint_url = f"{base_url}{fuzzed_endpoint}"
 
-                # Final blueprint
-                blueprint = {
+                # Final test suite
+                test_case = {
                     "endpoint": full_endpoint_url,
                     "method": operation.method,
                     "payload": payload,
                     "expected_response": expected_response,
                     "security": security_instructions,
                 }
-                blueprints.append(blueprint)
-        return blueprints
+                test_suite.append(test_case)
+        return test_suite

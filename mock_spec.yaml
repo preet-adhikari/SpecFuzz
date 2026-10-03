@@ -66,6 +66,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CharacterProfile"
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  fullTime:
+                    type: boolean
         '400':
           description: Bad request. Request payload is malformed or missing required structure.
         '409':
