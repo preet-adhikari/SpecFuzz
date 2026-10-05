@@ -4,6 +4,9 @@ info:
   version: 1.0.0
   description: A mock API for managing character profiles across the Nine Realms.
 
+security:
+  - basicAuth: []
+
 paths:
   /characters:
     # get:
@@ -63,6 +66,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CharacterProfile"
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  fullTime:
+                    type: boolean
         '400':
           description: Bad request. Request payload is malformed or missing required structure.
         '409':
@@ -208,5 +221,8 @@ components:
           $ref: "#/components/schemas/CharacterBase/properties/strengths"
         weaknesses:
           $ref: "#/components/schemas/CharacterBase/properties/weaknesses"
-
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
 

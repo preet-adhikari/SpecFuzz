@@ -65,14 +65,15 @@ def main():
         orchestrator = TestOrchestrator(blueprints_list)
         orchestrator.execute_tests()
 
-        validator = ValidationEngine("test_results.jsonl")
-        validator.generate_report()
+        # validator = ValidationEngine("test_results.jsonl")
+        # validator.generate_report()
 
     except ValueError as e:
         print(f"⛔️{e}")
         sys.exit(1)
 
     except Exception as e:
+        raise e
         print(f"An unexpected fatal error occurred: {e}")
         sys.exit(1)        
 

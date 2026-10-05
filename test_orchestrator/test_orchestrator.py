@@ -1,20 +1,25 @@
 from collections import deque
 import os
 import json
+import pprint
+import sys
 import requests
+import base64
 
 from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
 from execution_engine.execution_engine import ExecutionEngine
 from execution_engine.execution_result import ExecutionResult
+from validation_engine.validation_engine import ValidationEngine
 
 class TestOrchestrator:
-    def __init__(self, blueprints: list) -> None:
+    def __init__(self, test_suite: list) -> None:
 
         # Get the credentials from the .env file
         self.credentials = {
             "APIKEYAUTH": os.getenv("API_KEY", "spartan_123_default"),
             "OAUTH2": os.getenv("OAUTH_TOKEN", "Bearer temp_oauth_token"),
-            "BASICAUTH": os.getenv("BASIC_AUTH", "Basic admin:password123"),
+            # "BASICAUTH": os.getenv("BASIC_AUTH", "Basic admin:password123"),
+            "BASICAUTH": os.getenv("BASIC_AUTH", "kratos:sparta123"),
         }
         # Create the queue
         self.pending_queue = deque()
@@ -28,14 +33,14 @@ class TestOrchestrator:
         self.execution_engine = ExecutionEngine()
 
         # Initialize queue
-        self._create_job_queue(blueprints)
+        self._create_job_queue(test_suite)
 
-    def _create_job_queue(self, blueprints):
-        """Wrapping test blueprints into jobs which are then added to the main queue"""
+    def _create_job_queue(self, test_suite):
+        """Wrapping test cases into jobs which are then added to the main queue"""
 
-        for blueprint in blueprints:
+        for test_case in test_suite:
             job = {
-                "blueprint" : blueprint,
+                "test_case" : test_case,
                 "result" : None,
                 "tries" : 0,
                 "status" : "pending"
@@ -57,7 +62,7 @@ class TestOrchestrator:
             # Check if job has crossed max retries
             if current_job["tries"] > self.max_retries:
                 print(
-                    f"💀 Job died after {self.max_retries} attempts: {current_job['blueprint']['endpoint']}"
+                    f"💀 Job died after {self.max_retries} attempts: {current_job['test_case']['endpoint']}"
                 )
                 current_job["status"] = "dead"
 
@@ -74,24 +79,28 @@ class TestOrchestrator:
                 self._send_data_to_test_results_storage(current_job)
                 continue
 
-            # 4. Token Injection
+            # Token Injection
             self._attach_security_tokens(current_job)
 
             print(
-                f"[{current_job['tries']}/{self.max_retries}] Executing {current_job['blueprint']['method']} {current_job['blueprint']['endpoint']}"
+                f"[{current_job['tries']}/{self.max_retries}] Executing {current_job['test_case']['method']} {current_job['test_case']['endpoint']}"
             )
 
             # Execution
             response_data = self._fire_execution_engine(current_job)
 
+            # TODO : Data to the validation engine should be sent from here
+            validation_engine = ValidationEngine()
+            validation_result = validation_engine.validate(current_job, response_data)
+
             # Routing the Response
-            self._route_response(current_job, response_data)
+            self._route_response(current_job, response_data, validation_result)
 
     def _attach_security_tokens(self, job):
         """Attach security headers"""
 
-        blueprint = job["blueprint"]
-        security_instructions = blueprint.get("security", [])
+        test_case = job["test_case"]
+        security_instructions = test_case.get("security", [])
 
         # For testing purposes
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -101,49 +110,65 @@ class TestOrchestrator:
                 # Convert scheme name to uppercase to match our RAM dictionary keys
                 scheme = sec.get("scheme_name").upper()
                 token = self.credentials.get(scheme, "UNKNOWN_TOKEN")
-                headers[sec.get("key_name")] = token
+                if scheme == "BASICAUTH":
+                    encoded_token = base64.b64encode(token.encode('utf-8')).decode('utf-8')
+                    headers[sec.get("key_name")] = f"Basic {encoded_token}"    
+                else:
+                    headers[sec.get("key_name")] = token
 
         # Attach the finalized headers to the job state
         job["final_headers"] = headers
 
     def _fire_execution_engine(self, job):
         """Adapter that maps data and intercepts mocks before hitting the network."""
-        blueprint = job["blueprint"]
-        url = blueprint.get("endpoint")
+        test_case = job["test_case"]
+        url = test_case.get("endpoint")
 
-        # Intercept URL to force a 502 Bad Gateway
-        if "helheim" in url:
-            return {"status_code": 502, "error": "Mock Network Failure"}
+        # # Intercept URL to force a 502 Bad Gateway
+        # if "helheim" in url:
+        #     return {"status_code": 502, "error": "Mock Network Failure"}
 
-        # For Dry run
-        if "midgard.com" in url or "alfheim-gateway" in url:
-            return {"status_code": 200, "error": None}
+        # # For Dry run
+        # if "midgard.com" in url or "alfheim-gateway" in url:
+        #     return {"status_code": 200, "error": None}
 
         # Map Orchestrator Dictionary -> ExecutionEngineRequestData
         request_payload = ExecutionEngineRequestData(
-                method=blueprint.get("method").upper(),
+                method=test_case.get("method").upper(),
                 url=url,
                 headers=job["final_headers"],
-                payload=blueprint.get("payload")
+                payload=test_case.get("payload")
             )
 
         # Fire the real engine
         result = self.execution_engine.automate_http_request(request_payload)
 
-        if result.is_success:
-            return {"status_code": 200, "error": None} 
-        else:
-            return {"status_code": 502, "error": result.error_message}
+        # if result.is_success:
+        #     return {"status_code": 200, "error": None}
+        # else:
+        #     return {"status_code": 502, "error": result.error_message}
+        return result
+        # return {
+        #     "status_code" : result.status_code,
+        #     "error" : result.error_message
+        # }
 
-    def _route_response(self, job, response_data):
+    # TODO: Check if additional logic is required for more cases of network errors
+    def _route_response(self, job, response_data, validation_result):
         """Routes the job based on network success or failure."""
-        if response_data["error"] or response_data["status_code"] in [502, 503, 504]:
-            print("⚠️ Network error, pushing back to queue...")
+        if getattr(response_data, "error_message", None) or response_data.status_code in [429, 502, 503, 504]:
+            print(
+                f"⚠️ Structure error (Status {response_data.status_code}), pushing back to queue..."
+            )
             job["status"] = "pending"
             self.pending_queue.append(job)
         else:
             job["status"] = "completed"
-            job["results"] = response_data
+            job["results"] = {
+                "status_code": response_data.status_code,
+                "is_valid": validation_result.validation_result_status,
+                "validation_context": validation_result.validation_context,
+            }
             self.completed_jobs.append(job)
 
             # Fail-safe: Save to disk
