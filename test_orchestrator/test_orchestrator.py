@@ -1,6 +1,8 @@
 from collections import deque
 import os
 import json
+import pprint
+import sys
 import requests
 import base64
 
@@ -89,10 +91,10 @@ class TestOrchestrator:
 
             # TODO : Data to the validation engine should be sent from here
             validation_engine = ValidationEngine()
-            validation_engine.validate(current_job, response_data)
+            validation_result = validation_engine.validate(current_job, response_data)
 
             # Routing the Response
-            self._route_response(current_job, response_data)
+            self._route_response(current_job, response_data, validation_result)
 
     def _attach_security_tokens(self, job):
         """Attach security headers"""
@@ -138,7 +140,6 @@ class TestOrchestrator:
                 payload=test_case.get("payload")
             )
 
-
         # Fire the real engine
         result = self.execution_engine.automate_http_request(request_payload)
 
@@ -152,16 +153,22 @@ class TestOrchestrator:
         #     "error" : result.error_message
         # }
 
-    #TODO: Check if additional logic is required for more cases of network errors
-    def _route_response(self, job, response_data):
+    # TODO: Check if additional logic is required for more cases of network errors
+    def _route_response(self, job, response_data, validation_result):
         """Routes the job based on network success or failure."""
-        if response_data["error"] or response_data["status_code"] in [502, 503, 504]:
-            print("⚠️ Network error, pushing back to queue...")
+        if getattr(response_data, "error_message", None) or response_data.status_code in [429, 502, 503, 504]:
+            print(
+                f"⚠️ Structure error (Status {response_data.status_code}), pushing back to queue..."
+            )
             job["status"] = "pending"
             self.pending_queue.append(job)
         else:
             job["status"] = "completed"
-            job["results"] = response_data
+            job["results"] = {
+                "status_code": response_data.status_code,
+                "is_valid": validation_result.validation_result_status,
+                "validation_context": validation_result.validation_context,
+            }
             self.completed_jobs.append(job)
 
             # Fail-safe: Save to disk

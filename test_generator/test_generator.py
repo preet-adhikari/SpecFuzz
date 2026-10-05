@@ -43,7 +43,6 @@ class TestGenerator:
 
                 # Attach security placeholders here
                 security_instructions = []
-
                 if operation.security:
                     primary_requirement = operation.security[0]
                     for scheme in primary_requirement.schemes:

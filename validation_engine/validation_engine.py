@@ -3,6 +3,8 @@ import pprint
 import sys
 
 from execution_engine.execution_result import ExecutionResult
+from validation_engine.response_body_format_strategy.json_strategy import JSONStrategy
+from validation_engine.validation_result import ValidationResult
 
 class ValidationEngine:
     # def __init__(self, results_file):
@@ -12,9 +14,9 @@ class ValidationEngine:
     #     self._test_case = test_case
     #     self._execution_engine_result = execution_engine_result
 
-    def validate(self, job: dict, execution_engine_result: ExecutionResult) -> bool:
+    def validate(self, job: dict, execution_engine_result: ExecutionResult) -> ValidationResult:
         """ Validates data by comparing the expected response with the executed response"""
-        validation_flag = False
+
 
         pprint.pprint(job.get("test_case", {}).get("expected_response"))
         print("-----------------------")
@@ -37,16 +39,38 @@ class ValidationEngine:
                         print(f"Expected_content_type : {expected_content_type}")
                         print(f"Actual_content_type : {actual_content_type}")
                         if expected_content_type == actual_content_type:
-                            # TODO Compare keys
-                            print("Wohoo")
-                            pass
-                        else:
-                            validation_flag = False
-                            break
+                            # TODO: Add more content types
+                            if expected_content_type == "application/json":
+                                if execution_engine_result.response_body:
+                                    try:
+                                        strategy = JSONStrategy()
+                                        response_body_content_json = strategy.parse(execution_engine_result.response_body)
+                                        validation_result_status, validation_context = strategy.validate(response_body_content_json, expected_content_types.get(expected_content_type))
 
-        print(validation_flag)
-        # return validation_flag
-        sys.exit(1)
+                                        return ValidationResult(validation_result_status, validation_context, job, execution_engine_result)
+
+                                    except json.JSONDecodeError:
+                                        return ValidationResult(
+                                            validation_result_status=False,
+                                            validation_context="Failed to parse JSON: Response body is corrupted or invalid.",
+                                            job=job,
+                                            execution_result=execution_engine_result,
+                                        )
+                    # Content didn't match
+                    return ValidationResult(
+                        validation_result_status=False,
+                        validation_context=f"Content-Type mismatch: Expected {list(expected_content_types.keys())}, got '{actual_content_type}'",
+                        job=job,
+                        execution_result=execution_engine_result,
+                    )
+
+        # API returned status code that wasn't in the expected status codes.
+        return ValidationResult(
+            validation_result_status=False,
+            validation_context=f"Unexpected status code {execution_engine_result.status_code}. Expected one of: {list(expected_response_body.keys())}",
+            job=job,
+            execution_result=execution_engine_result,
+        )
 
     # Designing validation engine class
 

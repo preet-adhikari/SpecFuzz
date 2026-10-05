@@ -65,8 +65,8 @@ def main():
         orchestrator = TestOrchestrator(blueprints_list)
         orchestrator.execute_tests()
 
-        validator = ValidationEngine("test_results.jsonl")
-        validator.generate_report()
+        # validator = ValidationEngine("test_results.jsonl")
+        # validator.generate_report()
 
     except ValueError as e:
         print(f"⛔️{e}")

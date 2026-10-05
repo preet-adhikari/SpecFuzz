@@ -1,6 +1,8 @@
-from execution_engine_request_data import ExecutionEngineRequestData
-from execution_engine import ExecutionEngine
-from execution_engine_request_data import ExecutionEngineRequestData
+from execution_engine.execution_engine import ExecutionEngine
+from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
+
+
+
 
 # test_data = ExecutionEngineRequestData(
 #     method="POST",
@@ -54,7 +56,7 @@ receipt = engine.automate_http_request(test_data)
 print("\n--- EXECUTION RECEIPT ---")
 print(f"Success: {receipt.is_success}")
 print(f"Time Taken: {receipt.response_time} ms")
-print(f"Status Code: {receipt.response_status}")
+print(f"Status Code: {receipt.status_code}")
 
 if receipt.error_message:
     print(f"Error: {receipt.error_message}")
