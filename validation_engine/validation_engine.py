@@ -3,7 +3,8 @@ import pprint
 import sys
 
 from execution_engine.execution_result import ExecutionResult
-from validation_engine.response_body_format_strategy.json_strategy import JSONStrategy
+
+from validation_engine.media_type_parser_strategy.json_media_type_parser_strategy import JSONMediaTypeParserStrategy
 from validation_engine.validation_result import ValidationResult
 
 class ValidationEngine:
@@ -43,7 +44,7 @@ class ValidationEngine:
                             if expected_content_type == "application/json":
                                 if execution_engine_result.response_body:
                                     try:
-                                        strategy = JSONStrategy()
+                                        strategy = JSONMediaTypeParserStrategy()
                                         response_body_content_json = strategy.parse(execution_engine_result.response_body)
                                         validation_result_status, validation_context = strategy.validate(response_body_content_json, expected_content_types.get(expected_content_type))
 
