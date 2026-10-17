@@ -3,26 +3,32 @@ import pprint
 import sys
 
 from execution_engine.execution_result import ExecutionResult
-from validation_engine.response_body_format_strategy.json_strategy import JSONStrategy
+
+from validation_engine.media_type_parser_strategy.json_media_type_parser_strategy import (
+    JSONMediaTypeParserStrategy,
+)
 from validation_engine.validation_result import ValidationResult
+from validation_engine.validator_factory.base import ValidatorFactory
+
 
 class ValidationEngine:
-    # def __init__(self, results_file):
-    #     self._results_file = results_file
+    def __init__(self):
+        self._factory = ValidatorFactory()
 
     # def __init__(self, test_case: dict, execution_engine_result : ExecutionResult) -> None:
     #     self._test_case = test_case
     #     self._execution_engine_result = execution_engine_result
 
-    def validate(self, job: dict, execution_engine_result: ExecutionResult) -> ValidationResult:
-        """ Validates data by comparing the expected response with the executed response"""
-
+    def validate(
+        self, job: dict, execution_engine_result: ExecutionResult
+    ) -> ValidationResult:
+        """Validates data by comparing the expected response with the executed response"""
 
         pprint.pprint(job.get("test_case", {}).get("expected_response"))
         print("-----------------------")
         pprint.pprint(execution_engine_result)
 
-        expected_response_body = job.get("test_case",{}).get("expected_response")
+        expected_response_body = job.get("test_case", {}).get("expected_response")
         for status_code in expected_response_body:
             if status_code == str(execution_engine_result.status_code):
 
@@ -31,10 +37,14 @@ class ValidationEngine:
                     break
                 else:
                     # Compare content-type of the response
-                    expected_content_types = expected_response_body.get(status_code).get("content", {})
+                    expected_content_types = expected_response_body.get(
+                        status_code
+                    ).get("content", {})
                     actual_content_type = None
                     if execution_engine_result.response_header:
-                        actual_content_type = execution_engine_result.response_header.get("content-type")
+                        actual_content_type = (
+                            execution_engine_result.response_header.get("content-type")
+                        )
                     for expected_content_type in expected_content_types:
                         print(f"Expected_content_type : {expected_content_type}")
                         print(f"Actual_content_type : {actual_content_type}")
@@ -43,33 +53,74 @@ class ValidationEngine:
                             if expected_content_type == "application/json":
                                 if execution_engine_result.response_body:
                                     try:
-                                        strategy = JSONStrategy()
-                                        response_body_content_json = strategy.parse(execution_engine_result.response_body)
-                                        validation_result_status, validation_context = strategy.validate(response_body_content_json, expected_content_types.get(expected_content_type))
+                                        parser_strategy = JSONMediaTypeParserStrategy()
+                                        actual_response_json = parser_strategy.parse(
+                                            execution_engine_result.response_body
+                                        )
+                                        expected_response_json = (
+                                            expected_content_types.get(
+                                                expected_content_type
+                                            )
+                                        )
+                                        spec_validator = self._factory.get_validator(
+                                            "openapi_v3xx"
+                                        )
 
-                                        return ValidationResult(validation_result_status, validation_context, job, execution_engine_result)
+                                        validation_result_status, validation_context = (
+                                            spec_validator.validate(
+                                                expected_response=expected_response_json,
+                                                actual_response=actual_response_json,
+                                            )
+                                        )
+
+                                        # validator_factory =
+
+                                        return ValidationResult(
+                                            validation_result_status,
+                                            job,
+                                            execution_engine_result,
+                                            validation_context,
+                                        )
 
                                     except json.JSONDecodeError:
                                         return ValidationResult(
                                             validation_result_status=False,
-                                            validation_context="Failed to parse JSON: Response body is corrupted or invalid.",
                                             job=job,
                                             execution_result=execution_engine_result,
+                                            validation_context=[
+                                                {
+                                                    "field": "root",
+                                                    "rule": "parse_error",
+                                                    "message": "Failed to parse JSON: Response body is corrupted or invalid.",
+                                                }
+                                            ],
                                         )
                     # Content didn't match
                     return ValidationResult(
                         validation_result_status=False,
-                        validation_context=f"Content-Type mismatch: Expected {list(expected_content_types.keys())}, got '{actual_content_type}'",
                         job=job,
                         execution_result=execution_engine_result,
+                        validation_context=[
+                            {
+                                "field": "header.content-type",
+                                "rule": "content_type_mismatch",
+                                "message": f"Content-Type mismatch: Expected {list(expected_content_types.keys())}, got '{actual_content_type}'",
+                            }
+                        ],
                     )
 
         # API returned status code that wasn't in the expected status codes.
         return ValidationResult(
             validation_result_status=False,
-            validation_context=f"Unexpected status code {execution_engine_result.status_code}. Expected one of: {list(expected_response_body.keys())}",
             job=job,
             execution_result=execution_engine_result,
+            validation_context=[
+                {
+                    "field": "header.status_code",
+                    "rule": "status_code_mismatch",
+                    "message": f"Unexpected status code {execution_engine_result.status_code}. Expected one of: {list(expected_response_body.keys())}",
+                }
+            ],
         )
 
     # Designing validation engine class

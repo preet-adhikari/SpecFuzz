@@ -2,18 +2,23 @@ import json
 import sys
 from typing import Any, Optional
 
-from validation_engine.response_body_format_strategy.base import ResponseBodyFormatStrategy
+from validation_engine.media_type_parser_strategy.base import MediaTypeParserStrategy
 
 
-class JSONStrategy(ResponseBodyFormatStrategy):
+class JSONMediaTypeParserStrategy(MediaTypeParserStrategy):
     """Parses and handles the content-type that has application/json"""
+
     def parse(self, response_body_content: bytes) -> Any:
         return json.loads(response_body_content)
 
-    def validate(self, response_body_content: dict, expected_response_body: dict) -> tuple[bool, str]:
+    def validate(
+        self, response_body_content: dict, expected_response_body: dict
+    ) -> tuple[bool, str]:
         # Compare keys and types
         print("We are in JSON Strategy")
-        expected_response_body_properties = expected_response_body.get("schema",{}).get("properties")
+        expected_response_body_properties = expected_response_body.get(
+            "schema", {}
+        ).get("properties")
         required_list = expected_response_body.get("schema", {}).get("required", [])
 
         for required_item in required_list:
@@ -28,10 +33,15 @@ class JSONStrategy(ResponseBodyFormatStrategy):
             "array": list,
             "object": dict,
         }
-        
+        print("^^^^^^^^^^^^^")
+        print(response_body_content)
+        print("$$$$$$$$$$$$$$$$$$")
+        print(expected_response_body)
         for key, value in response_body_content.items():
             if key in expected_response_body_properties:
-                expected_type_string = expected_response_body_properties[key].get("type")
+                expected_type_string = expected_response_body_properties[key].get(
+                    "type"
+                )
 
                 if expected_type_string in openapi_to_python_types:
                     expected_python_type = openapi_to_python_types[expected_type_string]
@@ -43,6 +53,6 @@ class JSONStrategy(ResponseBodyFormatStrategy):
                             f"Type mismatch for key '{key}': Expected {expected_type_string}, got {actual_type_name}",
                         )
 
-        return True, "Valid JSON"    
+        return True, "Valid JSON"
 
         pass
