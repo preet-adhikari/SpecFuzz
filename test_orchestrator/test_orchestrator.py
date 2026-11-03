@@ -1,18 +1,22 @@
 from collections import deque
+from datetime import datetime, timezone
 import os
 import json
 import pprint
 import sys
+import uuid
 import requests
 import base64
 
 from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
 from execution_engine.execution_engine import ExecutionEngine
 from execution_engine.execution_result import ExecutionResult
+from test_results_storage.base import BaseStorageStrategy
 from validation_engine.validation_engine import ValidationEngine
+from validation_engine.validation_result import ValidationResult
 
 class TestOrchestrator:
-    def __init__(self, test_suite: list) -> None:
+    def __init__(self, test_suite: list, seed: int, storage_strategy: BaseStorageStrategy) -> None:
 
         # Get the credentials from the .env file
         self.credentials = {
@@ -21,6 +25,8 @@ class TestOrchestrator:
             # "BASICAUTH": os.getenv("BASIC_AUTH", "Basic admin:password123"),
             "BASICAUTH": os.getenv("BASIC_AUTH", "kratos:sparta123"),
         }
+        self._seed = seed
+
         # Create the queue
         self.pending_queue = deque()
         self.dead_jobs = []
@@ -29,11 +35,21 @@ class TestOrchestrator:
         # Setting max retries to 3 for now
         self.max_retries = 3
 
+        self._storage = storage_strategy
+        self._metadata = self._initialize_storage_metadata()
+        self._storage.initialize_storage(self._metadata)
         # Instantiate the external engine
         self.execution_engine = ExecutionEngine()
 
         # Initialize queue
         self._create_job_queue(test_suite)
+
+    def _initialize_storage_metadata(self):
+        return {
+            "test_run_id": str(uuid.uuid4()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "random_seed": self._seed,
+        }
 
     def _create_job_queue(self, test_suite):
         """Wrapping test cases into jobs which are then added to the main queue"""
@@ -51,6 +67,8 @@ class TestOrchestrator:
         """Main function to execute the tests"""
 
         print(f"🚀 [START] Starting execution of {len(self.pending_queue)} tests...")
+
+        # Initialize storage
 
         while self.pending_queue:
 
@@ -172,11 +190,14 @@ class TestOrchestrator:
             self.completed_jobs.append(job)
 
             # Fail-safe: Save to disk
-            self._send_data_to_test_results_storage(job)
+            self._send_data_to_test_results_storage(job, validation_result)
 
-    def _send_data_to_test_results_storage(self, job):
+    def _send_data_to_test_results_storage(self, job, validation_result: ValidationResult):
         """Appends the result to a file so data survives a script crash."""
         # 'a' mode opens the file, appends the line, and closes it.
         # Using .jsonl (JSON Lines) is perfect for writing one JSON object per line incrementally.
         with open("test_results.jsonl", "a") as f:
             f.write(json.dumps(job) + "\n")
+
+        self._storage.save(validation_result)
+        # self._storage.get_summary(self._metadata.get("test_metadata_id", {}))

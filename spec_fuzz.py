@@ -2,13 +2,17 @@ import argparse
 import os
 import sys
 import json
+
+from dotenv import load_dotenv
 from spec_factory import SpecFactory
 from test_generator.fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
 from dataclasses import asdict
 import pprint
 
+
 from test_generator.test_generator import TestGenerator
 from test_orchestrator.test_orchestrator import TestOrchestrator
+from test_results_storage.storage_factory.base import StorageFactory
 from validation_engine.validation_engine import ValidationEngine
 
 def main():
@@ -58,11 +62,22 @@ def main():
 
         # result, response = happy_path.generate_payload(schema, expected_response)
 
-        #TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
+        # TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
         result = TestGenerator(happy_path)
-        blueprints_list = result.generate_test_cases(parsed_data)
+        test_suite = result.generate_test_cases(parsed_data)
 
-        orchestrator = TestOrchestrator(blueprints_list)
+        load_dotenv()
+        config = {
+            "base_directory": os.getenv("FILE_STORAGE_BASE_DIRECTORY"),
+            "connection_url": os.getenv("MONGODB_DATABASE_URL"),
+            "database_name": "test_db",
+        }
+        active_storage = StorageFactory.get_storage("all", config)
+        orchestrator = TestOrchestrator(
+            test_suite=test_suite,
+            seed = result.current_seed,
+            storage_strategy=active_storage
+        )
         orchestrator.execute_tests()
 
         # validator = ValidationEngine("test_results.jsonl")
