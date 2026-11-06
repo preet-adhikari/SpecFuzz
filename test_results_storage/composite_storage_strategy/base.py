@@ -1,5 +1,6 @@
 from typing import Any, List
 
+from shared.dto_contracts import TestRunResults
 from test_results_storage.base import BaseStorageStrategy
 from validation_engine.validation_result import ValidationResult
 
@@ -42,4 +43,5 @@ class CompositeStorageStrategy(BaseStorageStrategy):
         self._strategies[0].get_summary(test_run_metadata_id)
 
     def get_test_run_details(self, test_run_metadata_id: str) -> Any:
-        pass
+        return self._strategies[0].get_test_run_details(test_run_metadata_id)
+

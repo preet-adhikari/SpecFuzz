@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from execution_engine.execution_result import ExecutionResult
+from shared.dto_contracts import TestCaseDetail, TestRunResults
 from test_results_storage.mongodb_storage_strategy import MongoDBStorageStrategy
 from validation_engine.validation_result import ValidationResult
 
@@ -113,7 +114,6 @@ class TestUnitMongoDBStrategy:
         # Arrange
         raw_json = [
             {
-                "_id": "ObjectId('1234567')",
                 "validation_result_status": "false",
                 "job": {
                     "test_case": {
@@ -135,8 +135,7 @@ class TestUnitMongoDBStrategy:
                 "test_run_id": "run_000",
             },
             {
-                "_id": "ObjectId('1234567')",
-                "validation_result_status": "false",
+                "validation_result_status": "true",
                 "job": {
                     "test_case": {
                         "endpoint": "http://sampleapi.com/567",
@@ -147,13 +146,7 @@ class TestUnitMongoDBStrategy:
                     },
                 },
                 "execution_result": {},
-                "validation_context": [
-                    {
-                        "field": "header.content-type",
-                        "rule": "content_type_mismatch",
-                        "message": "Content-Type mismatch: Expected [], got 'application/json'",
-                    }
-                ],
+                "validation_context": [],
                 "test_run_id": "run_000",
             },
         ]
@@ -177,26 +170,37 @@ class TestUnitMongoDBStrategy:
         assert (
             result_dict.get("metadata", {}).get("test_run_id", {}) == fake_test_run_id
         )
-        assert result_dict.get("results", [])[0].get("endpoint", "") == raw_json[0].get(
-            "job", {}
-        ).get("test_case", {}).get("endpoint", "")
-        assert result_dict.get("results", [])[1].get("endpoint", "") == raw_json[1].get(
-            "job", {}
-        ).get("test_case", {}).get("endpoint", "")
+        assert result_dict.get("results", [])[0].get("job", {}).get(
+            "test_case", {}
+        ).get("endpoint", "") == raw_json[0].get("job", {}).get("test_case", {}).get(
+            "endpoint", ""
+        )
+        assert result_dict.get("results", [])[1].get("job", {}).get(
+            "test_case", {}
+        ).get("endpoint", "") == raw_json[1].get("job", {}).get("test_case", {}).get(
+            "endpoint", ""
+        )
         sut.metadata_collection.find_one.assert_called_once_with(
             {"test_run_id": fake_test_run_id}
         )
         sut.collection.find.assert_called_once_with({"test_run_id": fake_test_run_id})
+        assert result_dict.get("results", [])[0].get(
+            "validation_result_status"
+        ) == raw_json[0].get("validation_result_status")
+        assert result_dict.get("results", [])[1].get(
+            "validation_result_status"
+        ) == raw_json[1].get("validation_result_status")
 
-    def test_unit_mongodb_storage_strategy_throws_valueError_if_test_id_doesnt_exist(
+    def test_unit_get_test_run_details_throws_valueError_if_test_id_doesnt_exist(
         self,
     ):
         # Arrange
-        raw_json = {}
         fake_test_run_id = "run_000"
         sut = MongoDBStorageStrategy("fake_url", "fake_db")
         sut.metadata_collection = MagicMock()
+        sut.collection = MagicMock()
         sut.metadata_collection.find_one.return_value = None
+        sut.metadata_collection.find.return_value = None
 
         # Act & Assert
         with pytest.raises(
@@ -204,4 +208,110 @@ class TestUnitMongoDBStrategy:
         ):
             sut.get_test_run_details(fake_test_run_id)
 
+    def test_unit_get_test_run_details_throws_runtime_error_if_both_collections_are_not_initialized(
+        self,
+    ):
+        # Arrange
+        sut = MongoDBStorageStrategy("fake_url", "fake_db")
+        sut.metadata_collection = None
+        sut.collection = None
+        fake_test_run_id = "run_000"
+
+        # Act and Assert
+        with pytest.raises(
+            RuntimeError, match="Database collections are not initialized."
+        ):
+            sut.get_test_run_details(fake_test_run_id)
+
+    def test_unit_map_to_dto_maps_valid_test_result_to_reporting_module_dto(self):
+        # Arrange
+        fake_raw_data = {
+            "metadata": {
+                "test_run_id": "run_000",
+                "timestamp": "2026-10-26T14:45:15.192754+00:00",
+            },
+            "results": [
+                {
+                    "validation_result_status": True,
+                    "validation_context": [],
+                    "job": {
+                        "tries": 1,
+                        "final_headers": {
+                            "Content-Type": "application/json",
+                            "Authorization": "Basic a3JhdG9zOnNwYXJ0YTEyMw==",
+                        },
+                        "test_case": {
+                            "endpoint": "http://sample-api/123",
+                            "method": "POST",
+                            "payload": {"name": "Sam", "skills": ["Java"]},
+                            "expected_response": {
+                                "201": {},
+                                "400": {},
+                                "500": {},
+                                "default": {},
+                            },
+                        },
+                    },
+                    "execution_result": {
+                        "response_time": 37.36,
+                        "status_code": 201,
+                        "response_header": {
+                            "content-type": "application/json",
+                            "server": "uvicorn",
+                        },
+                        "response_body": '{"name": "Todd", "skills": ["Java"]}',
+                    },
+                },
+                {
+                    "validation_result_status": False,
+                    "validation_context": [
+                        {
+                            "error_type": "SchemaValidationError",
+                            "field": "name",
+                            "message": "Expected string, got int",
+                        }
+                    ],
+                    "job": {
+                        "tries": 2,
+                        "final_headers": {"Content-Type": "application/json"},
+                        "test_case": {
+                            "endpoint": "http://sample-api/456",
+                            "method": "POST",
+                            "payload": {"name": 123},
+                            "expected_response": {"201": {}, "400": {}, "500": {}},
+                        },
+                    },
+                    "execution_result": {
+                        "response_time": 12.05,
+                        "status_code": 400,
+                        "response_header": {"content-type": "application/json"},
+                        "response_body": '{"detail": "Bad Request. Payload malformed."}',
+                    },
+                },
+            ],
+        }
+        sut = MongoDBStorageStrategy("fake_url", "fake_db")
+
+        # Act
+        dto_result = sut._map_to_dto(fake_raw_data)
+        # Assert
+        assert isinstance(dto_result, TestRunResults)
+        assert dto_result.passed_percentage == 50.0
+        assert len(dto_result.test_case_details) == 2
+        assert dto_result.test_run_id == "run_000"
+
+        details = dto_result.test_case_details
+        assert details[0].endpoint == "http://sample-api/123"
+        assert details[0].method == "POST"
+        assert (
+            details[0].response_status_code == "201"
+        )  
+        assert details[0].validation_passed is True
+        assert len(details[0].expected_response_codes) == 4
+
+        assert details[1].endpoint == "http://sample-api/456"
+        assert details[1].validation_passed is False
+        assert details[1].response_status_code == "400"
+        assert len(details[1].validation_context) == 1
+        assert details[1].validation_context[0]["field"] == "name"
         pass

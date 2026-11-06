@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List
 
+from shared.dto_contracts import TestRunResults
 from validation_engine.validation_result import ValidationResult
 
 

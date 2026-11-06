@@ -9,7 +9,9 @@ class ReportingModule:
         raw_report_dictionary = self._storage_strategy.get_test_run_details(test_run_id)
         test_success_checklist = []
         report = {}
-        for result in raw_report_dictionary.get("results", {}):
-            test_success_checklist.append(result["passed"])
+        for result in raw_report_dictionary.get("results", []):
+            test_success_checklist.append(result["validation_result_status"])
         report["is_success"] = test_success_checklist
         return report
+
+    

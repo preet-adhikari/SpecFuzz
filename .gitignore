@@ -7,3 +7,4 @@ specfuzz_runs/
 test_results.jsonl
 .env
 .coverage
+.pytest_cache/
