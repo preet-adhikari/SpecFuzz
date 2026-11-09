@@ -4,6 +4,8 @@ import sys
 import json
 
 from dotenv import load_dotenv
+from reporting_module.orchestrator import ReportOrchestrator
+from reporting_module.reporting_factory.base import ReportingFactory
 from spec_factory import SpecFactory
 from test_generator.fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
 from dataclasses import asdict
@@ -29,6 +31,13 @@ def main():
         "spec_file",
         help="📂 The path to the OpenAPI specification file (YAML or JSON)",
         type=str,
+    )
+
+    parser.add_argument(
+        "--reports",
+        nargs="+",
+        default=["cli"],
+        help="List of report formats to generate (e.g., --reports cli json csv)",
     )
 
     # Parse the arguments
@@ -78,7 +87,17 @@ def main():
             seed = result.current_seed,
             storage_strategy=active_storage
         )
-        orchestrator.execute_tests()
+        final_test_data = orchestrator.execute_tests()
+        active_reporters = []
+        for format_type in args.reports:
+            factory = ReportingFactory(format_type)
+            strategy = factory.choose_reporting_strategy()
+            active_reporters.append(strategy)
+
+        report_orchestrator = ReportOrchestrator(strategies=active_reporters)
+
+        print(f"Publishing reports for formats: {args.reports}")
+        report_orchestrator.publish_all_reports(final_test_data)
 
         # validator = ValidationEngine("test_results.jsonl")
         # validator.generate_report()

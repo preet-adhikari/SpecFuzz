@@ -14,7 +14,6 @@ class CLIReportingStrategy(ReportingStrategy):
         summary, details = self._build_data(result)
         self._console.print(details)
         self._console.print(summary)
-        pass
 
     def _build_data(self, result: TestRunResults) -> Any:
         summary_table = Table(title="Test Run Results Overview", title_justify="center")
@@ -71,5 +70,3 @@ class CLIReportingStrategy(ReportingStrategy):
             )
 
         return summary_table, details_table
-
-        pass

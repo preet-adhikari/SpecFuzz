@@ -8,3 +8,5 @@ test_results.jsonl
 .env
 .coverage
 .pytest_cache/
+csv_reports/
+json_reports/

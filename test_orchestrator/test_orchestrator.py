@@ -135,7 +135,8 @@ class TestOrchestrator:
             # Routing the Response
             self._route_response(current_job, response_data, validation_result)
         final_test_data = self._storage.get_test_run_details(self._metadata["test_run_id"])
-        self._run_reporting_module(final_test_data)
+        print("Testing complete. Handing results back to engine.")
+        return final_test_data
 
     def _attach_security_tokens(self, job):
         """Attach security headers"""
@@ -228,8 +229,3 @@ class TestOrchestrator:
             f.write(json.dumps(job) + "\n")
 
         self._storage.save(validation_result)
-
-    def _run_reporting_module(self, final_test_data: TestRunResults):
-        reporting_factory = ReportingFactory("cli")
-        cli_report = reporting_factory.choose_reporting_strategy()
-        cli_report.generate_report(final_test_data)

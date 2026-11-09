@@ -1,6 +1,8 @@
 from reporting_module.reporting_strategy.cli_reporting_strategy import (
     CLIReportingStrategy,
 )
+from reporting_module.reporting_strategy.csv_reporting_strategy import CSVReportingStrategy
+from reporting_module.reporting_strategy.json_reporting_strategy import JSONReportingStrategy
 from reporting_module.reporting_strategy.pdf_reporting_strategy import (
     PDFReportingStrategy,
 )
@@ -15,5 +17,9 @@ class ReportingFactory:
             return CLIReportingStrategy()
         elif self._reporting_factory == "pdf":
             return PDFReportingStrategy()
+        elif self._reporting_factory == "json":
+            return JSONReportingStrategy()
+        elif self._reporting_factory == "csv":
+            return CSVReportingStrategy()
         else:
             raise ValueError("Inappropriate reporting strategy")
