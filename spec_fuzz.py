@@ -72,6 +72,8 @@ def main():
         # result, response = happy_path.generate_payload(schema, expected_response)
 
         # TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
+
+        #TODO Can I only pass one strategy per test suite?
         result = TestGenerator(happy_path)
         test_suite = result.generate_test_cases(parsed_data)
 
@@ -91,8 +93,8 @@ def main():
         active_reporters = []
         for format_type in args.reports:
             factory = ReportingFactory(format_type)
-            strategy = factory.choose_reporting_strategy()
-            active_reporters.append(strategy)
+            reporting_format = factory.choose_reporting_strategy()
+            active_reporters.append(reporting_format)
 
         report_orchestrator = ReportOrchestrator(strategies=active_reporters)
 

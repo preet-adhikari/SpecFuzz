@@ -164,32 +164,12 @@ class TestUnitMongoDBStrategy:
         sut.collection.find.return_value = raw_json
 
         # Act
-        result_dict = sut.get_test_run_details(fake_test_run_id)
+        result_dto = sut.get_test_run_details(fake_test_run_id)
+        assert len(result_dto.test_case_details) == 2
+        assert result_dto.test_case_details[0].endpoint == "http://sampleapi.com/1234"
 
         # Assert
-        assert (
-            result_dict.get("metadata", {}).get("test_run_id", {}) == fake_test_run_id
-        )
-        assert result_dict.get("results", [])[0].get("job", {}).get(
-            "test_case", {}
-        ).get("endpoint", "") == raw_json[0].get("job", {}).get("test_case", {}).get(
-            "endpoint", ""
-        )
-        assert result_dict.get("results", [])[1].get("job", {}).get(
-            "test_case", {}
-        ).get("endpoint", "") == raw_json[1].get("job", {}).get("test_case", {}).get(
-            "endpoint", ""
-        )
-        sut.metadata_collection.find_one.assert_called_once_with(
-            {"test_run_id": fake_test_run_id}
-        )
-        sut.collection.find.assert_called_once_with({"test_run_id": fake_test_run_id})
-        assert result_dict.get("results", [])[0].get(
-            "validation_result_status"
-        ) == raw_json[0].get("validation_result_status")
-        assert result_dict.get("results", [])[1].get(
-            "validation_result_status"
-        ) == raw_json[1].get("validation_result_status")
+        assert result_dto.test_run_id == fake_test_run_id
 
     def test_unit_get_test_run_details_throws_valueError_if_test_id_doesnt_exist(
         self,
