@@ -28,23 +28,36 @@ class ValidationEngine:
         print("-----------------------")
         pprint.pprint(execution_engine_result)
 
-        expected_response_body = job.get("test_case", {}).get("expected_response")
+        expected_response_body = job.get("test_case", {}).get("expected_response") or {}
         for status_code in expected_response_body:
             if status_code == str(execution_engine_result.status_code):
 
-                if expected_response_body.get(status_code) == {}:
-                    validation_flag = True
-                    break
+                if (expected_response_body.get(status_code) == {}) or (
+                    expected_response_body.get(status_code, {}).get("content", {}) == {}
+                ):
+                    return ValidationResult(
+                        validation_result_status=True,
+                        job=job,
+                        execution_result=execution_engine_result,
+                        validation_context=[
+                            {
+                                "message": "Status code matched, no response body expected."
+                            }
+                        ],
+                    )
                 else:
                     # Compare content-type of the response
                     expected_content_types = expected_response_body.get(
-                        status_code
+                        status_code, {}
                     ).get("content", {})
                     actual_content_type = None
                     if execution_engine_result.response_header:
-                        actual_content_type = (
-                            execution_engine_result.response_header.get("content-type")
-                        )
+                        headers_lower = {
+                            k.lower(): v
+                            for k, v in execution_engine_result.response_header.items()
+                        }
+                        actual_content_type = headers_lower.get("content-type")
+
                     for expected_content_type in expected_content_types:
                         print(f"Expected_content_type : {expected_content_type}")
                         print(f"Actual_content_type : {actual_content_type}")
@@ -95,6 +108,20 @@ class ValidationEngine:
                                                 }
                                             ],
                                         )
+                                # Empty body
+                                return ValidationResult(
+                                    validation_result_status=False,
+                                    job=job,
+                                    execution_result=execution_engine_result,
+                                    validation_context=[
+                                        {
+                                            "field": "body",
+                                            "rule": "missing_body",
+                                            "message": "Expected JSON body, but the response body was empty.",
+                                        }
+                                    ],
+                                )
+
                     # Content didn't match
                     return ValidationResult(
                         validation_result_status=False,

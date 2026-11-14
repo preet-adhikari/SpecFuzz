@@ -28,7 +28,7 @@ class ExecutionEngine:
             elapsed_time_ms = (end - start) / 1_000_000
             return ExecutionResult(
                             is_success=response.ok,
-                            status_code=response.status_code,  # <-- Added here
+                            status_code=response.status_code,  
                             response_time=elapsed_time_ms,
                             response_header=dict(response.headers),
                             response_body=response.content
