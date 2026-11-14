@@ -1,18 +1,27 @@
 from collections import deque
+from datetime import datetime, timezone
 import os
 import json
 import pprint
 import sys
+import uuid
 import requests
 import base64
 
 from execution_engine.execution_engine_request_data import ExecutionEngineRequestData
 from execution_engine.execution_engine import ExecutionEngine
 from execution_engine.execution_result import ExecutionResult
+from reporting_module.reporting_factory.base import ReportingFactory
+from shared.dto_contracts import TestRunResults
+from test_results_storage.base import BaseStorageStrategy
 from validation_engine.validation_engine import ValidationEngine
+from validation_engine.validation_result import ValidationResult
+
 
 class TestOrchestrator:
-    def __init__(self, test_suite: list) -> None:
+    def __init__(
+        self, test_suite: list, seed: int, storage_strategy: BaseStorageStrategy
+    ) -> None:
 
         # Get the credentials from the .env file
         self.credentials = {
@@ -21,6 +30,8 @@ class TestOrchestrator:
             # "BASICAUTH": os.getenv("BASIC_AUTH", "Basic admin:password123"),
             "BASICAUTH": os.getenv("BASIC_AUTH", "kratos:sparta123"),
         }
+        self._seed = seed
+
         # Create the queue
         self.pending_queue = deque()
         self.dead_jobs = []
@@ -29,21 +40,31 @@ class TestOrchestrator:
         # Setting max retries to 3 for now
         self.max_retries = 3
 
+        self._storage = storage_strategy
+        self._metadata = self._initialize_storage_metadata()
+        self._storage.initialize_storage(self._metadata)
         # Instantiate the external engine
         self.execution_engine = ExecutionEngine()
 
         # Initialize queue
         self._create_job_queue(test_suite)
 
+    def _initialize_storage_metadata(self):
+        return {
+            "test_run_id": str(uuid.uuid4()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "random_seed": self._seed,
+        }
+
     def _create_job_queue(self, test_suite):
         """Wrapping test cases into jobs which are then added to the main queue"""
 
         for test_case in test_suite:
             job = {
-                "test_case" : test_case,
-                "result" : None,
-                "tries" : 0,
-                "status" : "pending"
+                "test_case": test_case,
+                "result": None,
+                "tries": 0,
+                "status": "pending",
             }
             self.pending_queue.append(job)
 
@@ -51,6 +72,8 @@ class TestOrchestrator:
         """Main function to execute the tests"""
 
         print(f"🚀 [START] Starting execution of {len(self.pending_queue)} tests...")
+
+        # Initialize storage
 
         while self.pending_queue:
 
@@ -76,7 +99,23 @@ class TestOrchestrator:
                 self.dead_jobs.append(current_job)
 
                 # Save the dead job to the JSONL file so the reporter sees it
-                self._send_data_to_test_results_storage(current_job)
+                dead_job_validation = ValidationResult(
+                    validation_result_status=False,
+                    job=current_job,
+                    execution_result=ExecutionResult(
+                        error_message="Dead job. Max Tries exceeded",
+                        is_success=False,
+                        response_time=0.0,
+                        status_code=502,
+                        response_header=None,
+                        response_body=None,
+                        response_url=None,
+                    ),
+                    validation_context=[],
+                )
+                self._send_data_to_test_results_storage(
+                    current_job,dead_job_validation
+                )
                 continue
 
             # Token Injection
@@ -95,6 +134,9 @@ class TestOrchestrator:
 
             # Routing the Response
             self._route_response(current_job, response_data, validation_result)
+        final_test_data = self._storage.get_test_run_details(self._metadata["test_run_id"])
+        print("Testing complete. Handing results back to engine.")
+        return final_test_data
 
     def _attach_security_tokens(self, job):
         """Attach security headers"""
@@ -111,8 +153,10 @@ class TestOrchestrator:
                 scheme = sec.get("scheme_name").upper()
                 token = self.credentials.get(scheme, "UNKNOWN_TOKEN")
                 if scheme == "BASICAUTH":
-                    encoded_token = base64.b64encode(token.encode('utf-8')).decode('utf-8')
-                    headers[sec.get("key_name")] = f"Basic {encoded_token}"    
+                    encoded_token = base64.b64encode(token.encode("utf-8")).decode(
+                        "utf-8"
+                    )
+                    headers[sec.get("key_name")] = f"Basic {encoded_token}"
                 else:
                     headers[sec.get("key_name")] = token
 
@@ -134,11 +178,11 @@ class TestOrchestrator:
 
         # Map Orchestrator Dictionary -> ExecutionEngineRequestData
         request_payload = ExecutionEngineRequestData(
-                method=test_case.get("method").upper(),
-                url=url,
-                headers=job["final_headers"],
-                payload=test_case.get("payload")
-            )
+            method=test_case.get("method").upper(),
+            url=url,
+            headers=job["final_headers"],
+            payload=test_case.get("payload"),
+        )
 
         # Fire the real engine
         result = self.execution_engine.automate_http_request(request_payload)
@@ -156,7 +200,9 @@ class TestOrchestrator:
     # TODO: Check if additional logic is required for more cases of network errors
     def _route_response(self, job, response_data, validation_result):
         """Routes the job based on network success or failure."""
-        if getattr(response_data, "error_message", None) or response_data.status_code in [429, 502, 503, 504]:
+        if getattr(
+            response_data, "error_message", None
+        ) or response_data.status_code in [429, 502, 503, 504]:
             print(
                 f"⚠️ Structure error (Status {response_data.status_code}), pushing back to queue..."
             )
@@ -171,12 +217,15 @@ class TestOrchestrator:
             }
             self.completed_jobs.append(job)
 
-            # Fail-safe: Save to disk
-            self._send_data_to_test_results_storage(job)
+            self._send_data_to_test_results_storage(job, validation_result)
 
-    def _send_data_to_test_results_storage(self, job):
+    def _send_data_to_test_results_storage(
+        self, job, validation_result: ValidationResult
+    ):
         """Appends the result to a file so data survives a script crash."""
         # 'a' mode opens the file, appends the line, and closes it.
         # Using .jsonl (JSON Lines) is perfect for writing one JSON object per line incrementally.
         with open("test_results.jsonl", "a") as f:
             f.write(json.dumps(job) + "\n")
+
+        self._storage.save(validation_result)

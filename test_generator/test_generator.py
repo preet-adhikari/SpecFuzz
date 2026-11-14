@@ -18,6 +18,10 @@ class TestGenerator:
         # Setting the seed here
         random.seed(self._seed)
 
+    @property
+    def current_seed(self):
+        return self._seed
+
     def set_strategy(self, strategy: FuzzingStrategy):
         self._strategy = strategy
 

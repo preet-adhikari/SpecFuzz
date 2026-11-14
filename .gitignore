@@ -1,5 +1,12 @@
 __pycache__/
 .venv/
-.mypy*
 .vscode/
+.mypy*
 notes.md
+specfuzz_runs/
+.env
+.coverage
+.pytest_cache/
+csv_reports/
+json_reports/
+test_results.jsonl

@@ -2,13 +2,19 @@ import argparse
 import os
 import sys
 import json
+
+from dotenv import load_dotenv
+from reporting_module.orchestrator import ReportOrchestrator
+from reporting_module.reporting_factory.base import ReportingFactory
 from spec_factory import SpecFactory
 from test_generator.fuzzing_strategy import HappyPathStrategy, MissingRequiredFieldsStrategy, TypeMismatchStrategy
 from dataclasses import asdict
 import pprint
 
+
 from test_generator.test_generator import TestGenerator
 from test_orchestrator.test_orchestrator import TestOrchestrator
+from test_results_storage.storage_factory.base import StorageFactory
 from validation_engine.validation_engine import ValidationEngine
 
 def main():
@@ -25,6 +31,13 @@ def main():
         "spec_file",
         help="📂 The path to the OpenAPI specification file (YAML or JSON)",
         type=str,
+    )
+
+    parser.add_argument(
+        "--reports",
+        nargs="+",
+        default=["cli"],
+        help="List of report formats to generate (e.g., --reports cli json csv)",
     )
 
     # Parse the arguments
@@ -58,12 +71,35 @@ def main():
 
         # result, response = happy_path.generate_payload(schema, expected_response)
 
-        #TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
-        result = TestGenerator(happy_path)
-        blueprints_list = result.generate_test_cases(parsed_data)
+        # TODO Pass an optional "seed" parameter to the args.spec_file and then pass it here
 
-        orchestrator = TestOrchestrator(blueprints_list)
-        orchestrator.execute_tests()
+        #TODO Can I only pass one strategy per test suite?
+        result = TestGenerator(happy_path)
+        test_suite = result.generate_test_cases(parsed_data)
+
+        load_dotenv()
+        config = {
+            "base_directory": os.getenv("FILE_STORAGE_BASE_DIRECTORY"),
+            "connection_url": os.getenv("MONGODB_DATABASE_URL"),
+            "database_name": "test_db",
+        }
+        active_storage = StorageFactory.get_storage("all", config)
+        orchestrator = TestOrchestrator(
+            test_suite=test_suite,
+            seed = result.current_seed,
+            storage_strategy=active_storage
+        )
+        final_test_data = orchestrator.execute_tests()
+        active_reporters = []
+        for format_type in args.reports:
+            factory = ReportingFactory(format_type)
+            reporting_format = factory.choose_reporting_strategy()
+            active_reporters.append(reporting_format)
+
+        report_orchestrator = ReportOrchestrator(strategies=active_reporters)
+
+        print(f"Publishing reports for formats: {args.reports}")
+        report_orchestrator.publish_all_reports(final_test_data)
 
         # validator = ValidationEngine("test_results.jsonl")
         # validator.generate_report()
